@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Caja extends Model
 {
+    use HasFactory;
+
     protected $table = 'cajas';
     protected $primaryKey = 'id_caja';
 
@@ -14,6 +17,11 @@ class Caja extends Model
         'nombre',
         'tipo',
         'estado',
+        'saldo_inicial',
+        'monto_apertura',
+        'monto_cierre',
+        'fecha_cierre',
+        'usuarios_id_cerrado',
     ];
 
     public function movimientos()

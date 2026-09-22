@@ -2,15 +2,18 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\MatriculaRequest;
 use App\Models\Matricula;
 use App\Models\Alumno;
 use App\Models\Nivel;
 use App\Models\Grado;
 use App\Models\PeriodoAcademico;
 use App\Models\CicloAcademia;
+use App\Models\Pago;
 use App\Traits\RegistraMovimientos;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class MatriculaController extends Controller
 {
@@ -18,42 +21,12 @@ class MatriculaController extends Controller
 
     public function index(Request $request)
     {
-        $query = Matricula::with(['alumno', 'periodo', 'nivel', 'grado']);
-
-        // Filtro por periodo
-        if ($request->has('periodo') && $request->periodo != '') {
-            $query->where('id_periodo', $request->periodo);
-        }
-
-        // Filtro por nivel
-        if ($request->has('nivel') && $request->nivel != '') {
-            $query->where('id_nivel', $request->nivel);
-        }
-
-        // Filtro por modalidad
-        if ($request->has('modalidad') && $request->modalidad != '') {
-            $query->where('modalidad', $request->modalidad);
-        }
-
-        // Filtro por estado
-        if ($request->has('estado') && $request->estado != '') {
-            $query->where('estado', $request->estado);
-        }
-
-        // Búsqueda
-        if ($request->has('busqueda') && $request->busqueda != '') {
-            $busqueda = $request->busqueda;
-            $query->where(function($q) use ($busqueda) {
-                $q->where('codigo', 'LIKE', "%{$busqueda}%")
-                  ->orWhereHas('alumno', function($sub) use ($busqueda) {
-                      $sub->where('nombres', 'LIKE', "%{$busqueda}%")
-                          ->orWhere('apellidos', 'LIKE', "%{$busqueda}%")
-                          ->orWhere('dni', 'LIKE', "%{$busqueda}%");
-                  });
-            });
-        }
-
-        $matriculas = $query->orderBy('created_at', 'desc')->paginate(20);
+        $matriculas = Matricula::query()
+            ->with(['alumno', 'periodo', 'nivel', 'grado'])
+            ->filtrar($request)
+            ->orderBy('created_at', 'desc')
+            ->paginate(20)
+            ->withQueryString();
 
         $periodos = PeriodoAcademico::orderBy('anio', 'desc')->get();
         $niveles = Nivel::where('estado', 'ACTIVO')->get();
@@ -71,6 +44,9 @@ class MatriculaController extends Controller
 
     public function create(Request $request)
     {
+        if (auth()->user()->role === 'cajero') {
+            return abort(403, 'Sin permisos');
+        }
         $alumnos = Alumno::where('estado', 'ACTIVO')->orderBy('apellidos')->get();
         $periodos = PeriodoAcademico::orderBy('anio', 'desc')->get();
         $niveles = Nivel::where('estado', 'ACTIVO')->get();
@@ -80,28 +56,10 @@ class MatriculaController extends Controller
         return view('matriculas.create', compact('alumnos', 'periodos', 'niveles', 'grados', 'ciclos'));
     }
 
-    public function store(Request $request)
+    public function store(MatriculaRequest $request)
     {
-        $validated = $request->validate([
-            'codigo' => [
-                'required',
-                'string',
-                'max:40',
-                Rule::unique('matriculas', 'codigo')
-            ],
-            'id_alumno' => 'required|exists:alumnos,id_alumno',
-            'id_periodo' => 'required|exists:periodos_academicos,id_periodo',
-            'id_nivel' => 'required|exists:niveles,id_nivel',
-            'modalidad' => 'required|in:ESCOLAR,ACADEMIA',
-            'id_grado' => 'required_if:modalidad,ESCOLAR|nullable|exists:grados,id_grado',
-            'id_ciclo' => 'required_if:modalidad,ACADEMIA|nullable|exists:ciclos_academia,id_ciclo',
-            'fecha_matricula' => 'required|date',
-            'tipo_matricula' => 'required|in:NUEVO,REGULAR,TRASLADO,REINGRESO',
-            'estado' => 'required|in:PENDIENTE,ACTIVA,RETIRADA,ANULADA,FINALIZADA',
-            'observaciones' => 'nullable|string|max:500',
-        ]);
+        $validated = $request->validated();
 
-        // Validar que no exista una matrícula activa para el mismo alumno y periodo
         $existe = Matricula::where('id_alumno', $validated['id_alumno'])
                           ->where('id_periodo', $validated['id_periodo'])
                           ->whereIn('estado', ['ACTIVA', 'PENDIENTE'])
@@ -115,7 +73,41 @@ class MatriculaController extends Controller
 
         $validated['registrado_por'] = auth()->id();
 
-        $matricula = Matricula::create($validated);
+        $matricula = null;
+
+        try {
+            DB::transaction(function () use ($validated, &$matricula) {
+                $matricula = Matricula::create($validated);
+
+                if (!empty($request->input('pagos_iniciales'))) {
+                    foreach ($request->input('pagos_iniciales') as $pagoData) {
+                        $pago = \App\Models\Pago::create([
+                            'codigo' => 'PAG-' . $matricula->codigo . '-' . now()->format('ymd'),
+                            'id_matricula' => $matricula->id_matricula,
+                            'id_caja' => $pagoData['id_caja'],
+                            'fecha_pago' => now()->format('Y-m-d H:i:s'),
+                            'metodo_pago' => $pagoData['metodo_pago'] ?? 'EFECTIVO',
+                            'monto_total' => $pagoData['monto'],
+                            'estado' => 'CONFIRMADO',
+                            'registrado_por' => auth()->id(),
+                        ]);
+
+                        if ($pago->monto_total >= $matricula->cuentasPorCobrar()->whereIn('estado', ['PENDIENTE', 'PARCIAL'])->sum('monto_pendiente')) {
+                            $matricula->update(['estado' => 'PAGADA']);
+                        }
+                    }
+                }
+            });
+        } catch (\Throwable $e) {
+            Log::error('Error al registrar matrícula', [
+                'exception' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return back()->withErrors([
+                'error' => 'Ocurrió un error al registrar la matrícula.',
+            ])->withInput();
+        }
 
         self::registrarMovimiento(
             'CREAR',
@@ -139,6 +131,9 @@ class MatriculaController extends Controller
 
     public function edit(Matricula $matricula)
     {
+        if (auth()->user()->role === 'cajero') {
+            return abort(403, 'Sin permisos');
+        }
         $alumnos = Alumno::where('estado', 'ACTIVO')->orderBy('apellidos')->get();
         $periodos = PeriodoAcademico::orderBy('anio', 'desc')->get();
         $niveles = Nivel::where('estado', 'ACTIVO')->get();
@@ -148,28 +143,14 @@ class MatriculaController extends Controller
         return view('matriculas.edit', compact('matricula', 'alumnos', 'periodos', 'niveles', 'grados', 'ciclos'));
     }
 
-    public function update(Request $request, Matricula $matricula)
+    public function update(MatriculaRequest $request, Matricula $matricula)
     {
+        if (auth()->user()->role === 'cajero') {
+            return abort(403, 'Sin permisos');
+        }
         $valoresAnteriores = $matricula->toArray();
 
-        $validated = $request->validate([
-            'codigo' => [
-                'required',
-                'string',
-                'max:40',
-                Rule::unique('matriculas', 'codigo')->ignore($matricula->id_matricula, 'id_matricula')
-            ],
-            'id_alumno' => 'required|exists:alumnos,id_alumno',
-            'id_periodo' => 'required|exists:periodos_academicos,id_periodo',
-            'id_nivel' => 'required|exists:niveles,id_nivel',
-            'modalidad' => 'required|in:ESCOLAR,ACADEMIA',
-            'id_grado' => 'required_if:modalidad,ESCOLAR|nullable|exists:grados,id_grado',
-            'id_ciclo' => 'required_if:modalidad,ACADEMIA|nullable|exists:ciclos_academia,id_ciclo',
-            'fecha_matricula' => 'required|date',
-            'tipo_matricula' => 'required|in:NUEVO,REGULAR,TRASLADO,REINGRESO',
-            'estado' => 'required|in:PENDIENTE,ACTIVA,RETIRADA,ANULADA,FINALIZADA',
-            'observaciones' => 'nullable|string|max:500',
-        ]);
+        $validated = $request->validated();
 
         $validated['updated_by'] = auth()->id();
 
@@ -191,6 +172,9 @@ class MatriculaController extends Controller
 
     public function destroy(Matricula $matricula)
     {
+        if (auth()->user()->role === 'cajero') {
+            return abort(403, 'Sin permisos');
+        }
         // Verificar que no tenga pagos
         if ($matricula->pagos()->count() > 0) {
             return redirect()->route('matriculas.index')

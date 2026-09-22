@@ -2,52 +2,48 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ApoderadoRequest;
 use App\Models\Apoderado;
+use App\Traits\RegistraMovimientos;
 use Illuminate\Http\Request;
 
 class ApoderadoController extends Controller
 {
+    use RegistraMovimientos;
+
     public function index(Request $request)
     {
-        $query = Apoderado::withCount('alumnos');
-
-        if ($request->has('busqueda') && $request->busqueda != '') {
-            $busqueda = $request->busqueda;
-            $query->where(function($q) use ($busqueda) {
-                $q->where('nombres', 'LIKE', "%{$busqueda}%")
-                  ->orWhere('apellidos', 'LIKE', "%{$busqueda}%")
-                  ->orWhere('dni', 'LIKE', "%{$busqueda}%")
-                  ->orWhere('celular', 'LIKE', "%{$busqueda}%");
-            });
-        }
-
-        if ($request->has('estado') && $request->estado != '') {
-            $query->where('estado', $request->estado);
-        }
-
-        $apoderados = $query->orderBy('apellidos')->paginate(20);
+        $apoderados = Apoderado::query()
+            ->withCount('alumnos')
+            ->filtrar($request)
+            ->orderBy('apellidos')
+            ->paginate(20)
+            ->withQueryString();
 
         return view('apoderados.index', compact('apoderados'));
     }
 
     public function create()
     {
+        if (auth()->user()->role === 'cajero') {
+            return abort(403, 'Sin permisos');
+        }
         return view('apoderados.create');
     }
 
-    public function store(Request $request)
+    public function store(ApoderadoRequest $request)
     {
-        $validated = $request->validate([
-            'dni' => 'nullable|string|size:8|unique:apoderados,dni',
-            'nombres' => 'required|string|max:100',
-            'apellidos' => 'required|string|max:100',
-            'celular' => 'nullable|string|max:20',
-            'email' => 'nullable|email|max:120',
-            'direccion' => 'nullable|string|max:255',
-            'estado' => 'required|in:ACTIVO,INACTIVO',
-        ]);
+        $apoderado = Apoderado::create($request->validated());
 
-        Apoderado::create($validated);
+        self::registrarMovimiento(
+            'CREAR',
+            'Apoderados',
+            'Apoderado',
+            $apoderado->id_apoderado,
+            "Creó al apoderado {$apoderado->nombres} {$apoderado->apellidos}",
+            null,
+            $apoderado->toArray()
+        );
 
         return redirect()->route('apoderados.index')
                         ->with('success', '¡Apoderado creado exitosamente!');
@@ -61,22 +57,30 @@ class ApoderadoController extends Controller
 
     public function edit(Apoderado $apoderado)
     {
+        if (auth()->user()->role === 'cajero') {
+            return abort(403, 'Sin permisos');
+        }
         return view('apoderados.edit', compact('apoderado'));
     }
 
-    public function update(Request $request, Apoderado $apoderado)
+    public function update(ApoderadoRequest $request, Apoderado $apoderado)
     {
-        $validated = $request->validate([
-            'dni' => 'nullable|string|size:8|unique:apoderados,dni,' . $apoderado->id_apoderado . ',id_apoderado',
-            'nombres' => 'required|string|max:100',
-            'apellidos' => 'required|string|max:100',
-            'celular' => 'nullable|string|max:20',
-            'email' => 'nullable|email|max:120',
-            'direccion' => 'nullable|string|max:255',
-            'estado' => 'required|in:ACTIVO,INACTIVO',
-        ]);
+        if (auth()->user()->role === 'cajero') {
+            return abort(403, 'Sin permisos');
+        }
+        $valoresAnteriores = $apoderado->toArray();
 
-        $apoderado->update($validated);
+        $apoderado->update($request->validated());
+
+        self::registrarMovimiento(
+            'ACTUALIZAR',
+            'Apoderados',
+            'Apoderado',
+            $apoderado->id_apoderado,
+            "Actualizó al apoderado {$apoderado->nombres} {$apoderado->apellidos}",
+            $valoresAnteriores,
+            $apoderado->fresh()->toArray()
+        );
 
         return redirect()->route('apoderados.index')
                         ->with('success', '¡Apoderado actualizado exitosamente!');
@@ -84,7 +88,24 @@ class ApoderadoController extends Controller
 
     public function destroy(Apoderado $apoderado)
     {
+        if (auth()->user()->role === 'cajero') {
+            return abort(403, 'Sin permisos');
+        }
+        $nombre = "{$apoderado->nombres} {$apoderado->apellidos}";
+        $id = $apoderado->id_apoderado;
+        $valores = $apoderado->toArray();
+
         $apoderado->delete();
+
+        self::registrarMovimiento(
+            'ELIMINAR',
+            'Apoderados',
+            'Apoderado',
+            $id,
+            "Eliminó al apoderado {$nombre}",
+            $valores,
+            null
+        );
 
         return redirect()->route('apoderados.index')
                         ->with('success', '¡Apoderado eliminado exitosamente!');

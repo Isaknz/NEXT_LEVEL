@@ -2,10 +2,15 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\Request;
 
 class Matricula extends Model
 {
+    use HasFactory;
+
     protected $table = 'matriculas';
     protected $primaryKey = 'id_matricula';
 
@@ -84,5 +89,25 @@ class Matricula extends Model
                     ->sum(function($cuenta) {
                         return $cuenta->monto_pendiente;
                     });
+    }
+
+    public function scopeFiltrar(Builder $query, Request $request): Builder
+    {
+        return $query
+            ->when($request->filled('periodo'), fn ($q) => $q->where('id_periodo', $request->periodo))
+            ->when($request->filled('nivel'), fn ($q) => $q->where('id_nivel', $request->nivel))
+            ->when($request->filled('modalidad'), fn ($q) => $q->where('modalidad', $request->modalidad))
+            ->when($request->filled('estado'), fn ($q) => $q->where('estado', $request->estado))
+            ->when($request->filled('busqueda'), function ($q) use ($request) {
+                $q->where(function ($inner) use ($request) {
+                    $b = $request->busqueda;
+                    $inner->where('codigo', 'LIKE', "%{$b}%")
+                          ->orWhereHas('alumno', function ($sub) use ($b) {
+                              $sub->where('nombres', 'LIKE', "%{$b}%")
+                                  ->orWhere('apellidos', 'LIKE', "%{$b}%")
+                                  ->orWhere('dni', 'LIKE', "%{$b}%");
+                          });
+                });
+            });
     }
 }

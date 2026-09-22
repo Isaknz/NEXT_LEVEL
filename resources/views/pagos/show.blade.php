@@ -13,10 +13,24 @@
         </div>
         <div class="flex gap-2">
             @if($pago->estado === 'CONFIRMADO')
-            <button type="button" onclick="document.getElementById('modal-anular').classList.remove('hidden')"
-                    class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm shadow">
-                <i class="fas fa-ban mr-1"></i> Anular
-            </button>
+            <form method="POST" action="{{ route('pagos.anular', $pago->id_pago) }}" 
+                  x-data="{ confirmDelete: false }" class="inline">
+                @csrf
+                @method('DELETE')
+                <button type="button" @click="confirmDelete = true"
+                        class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm shadow">
+                    <i class="fas fa-ban mr-1"></i> Anular
+                </button>
+                <div x-show="confirmDelete" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                    <div class="bg-white rounded-lg p-6 max-w-sm">
+                        <p class="font-semibold">¿Seguro que deseas anular el pago {{ $pago->codigo }}?</p>
+                        <div class="mt-4 flex gap-2">
+                            <button @click="confirmDelete = false" class="btn-secondary rounded px-3 py-1">Cancelar</button>
+                            <button type="submit" @click="confirmDelete = false" class="bg-red-500 hover:bg-red-600 text-white rounded px-3 py-1">Confirmar</button>
+                        </div>
+                    </div>
+                </div>
+            </form>
             @endif
             <a href="{{ route('pagos.index') }}" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm shadow">
                 <i class="fas fa-arrow-left mr-1"></i> Volver
@@ -176,39 +190,4 @@
     </div>
 </div>
 
-<!-- Modal Anular -->
-@if($pago->estado === 'CONFIRMADO')
-<div id="modal-anular" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
-        <div class="flex items-center mb-4">
-            <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mr-3">
-                <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
-            </div>
-            <div>
-                <h3 class="text-lg font-bold text-gray-800">Anular Pago</h3>
-                <p class="text-sm text-gray-500">{{ $pago->codigo }}</p>
-            </div>
-        </div>
-
-        <form action="{{ route('pagos.anular', $pago->id_pago) }}" method="POST">
-            @csrf
-            <div class="mb-4">
-                <label class="block text-sm font-semibold text-gray-700 mb-2">Motivo *</label>
-                <textarea name="motivo_anulacion" rows="3" required
-                          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"></textarea>
-            </div>
-
-            <div class="flex justify-end gap-3">
-                <button type="button" onclick="document.getElementById('modal-anular').classList.add('hidden')"
-                        class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm">
-                    Cancelar
-                </button>
-                <button type="submit" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm">
-                    <i class="fas fa-ban mr-1"></i> Anular
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
-@endif
 @endsection

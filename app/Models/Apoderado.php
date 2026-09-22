@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Http\Request;
 
 class Apoderado extends Model
 {
@@ -32,5 +34,20 @@ class Apoderado extends Model
     public function getNombreCompletoAttribute()
     {
         return $this->apellidos . ', ' . $this->nombres;
+    }
+
+    public function scopeFiltrar(Builder $query, Request $request): Builder
+    {
+        return $query
+            ->when($request->filled('estado'), fn ($q) => $q->where('estado', $request->estado))
+            ->when($request->filled('busqueda'), function ($q) use ($request) {
+                $q->where(function ($inner) use ($request) {
+                    $b = $request->busqueda;
+                    $inner->where('nombres', 'LIKE', "%{$b}%")
+                          ->orWhere('apellidos', 'LIKE', "%{$b}%")
+                          ->orWhere('dni', 'LIKE', "%{$b}%")
+                          ->orWhere('celular', 'LIKE', "%{$b}%");
+                });
+            });
     }
 }

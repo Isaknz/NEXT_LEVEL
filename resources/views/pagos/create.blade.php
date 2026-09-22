@@ -3,7 +3,7 @@
 @section('title', 'Registrar Pago - Next Level')
 
 @section('content')
-<div class="max-w-5xl mx-auto">
+<div class="max-w-5xl mx-auto" x-data="{ showSummary: false, selectedConcepts: [], metodoPagoSeleccionado: '' }">
     <h2 class="text-2xl font-bold text-gray-800 mb-6">
         <i class="fas fa-money-bill-wave mr-2 text-green-600"></i>Registrar Nuevo Pago
     </h2>
@@ -55,7 +55,9 @@
 
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">Método de Pago *</label>
-                <select name="metodo_pago" required class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-white">
+                <select name="metodo_pago" id="metodo_pago" required
+                        x-model="metodoPagoSeleccionado"
+                        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-white">
                     <option value="">Seleccionar método</option>
                     <option value="EFECTIVO" {{ old('metodo_pago') === 'EFECTIVO' ? 'selected' : '' }}>Efectivo</option>
                     <option value="YAPE" {{ old('metodo_pago') === 'YAPE' ? 'selected' : '' }}>Yape</option>
@@ -146,15 +148,93 @@
             </div>
         </div>
 
+        <!-- Botones de acción -->
         <div class="mt-8 flex justify-end gap-3 border-t pt-6">
             <a href="{{ route('pagos.index') }}" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2.5 rounded-lg text-sm shadow">
                 Cancelar
             </a>
-            <button type="submit" class="btn-primary text-white px-8 py-2.5 rounded-lg text-sm font-semibold shadow">
+            <button type="button" id="btn-ver-resumen"
+                    @click="showSummary = true"
+                    class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-2.5 rounded-lg text-sm font-semibold shadow">
+                <i class="fas fa-eye mr-1"></i> Ver Resumen
+            </button>
+            <button type="submit" id="btn-registrar"
+                    class="btn-primary text-white px-8 py-2.5 rounded-lg text-sm font-semibold shadow opacity-50 cursor-not-allowed"
+                    disabled>
                 <i class="fas fa-save mr-1"></i> Registrar Pago
             </button>
         </div>
     </form>
+
+    <!-- Modal de Resumen -->
+    <div x-show="showSummary"
+         x-transition.opacity
+         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50"
+         style="display: none;">
+        <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6" @click.away="showSummary = false">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">
+                <i class="fas fa-file-invoice mr-2 text-green-600"></i>Resumen del Pago
+            </h3>
+
+            <!-- Conceptos seleccionados -->
+            <div class="mb-4">
+                <h4 class="text-sm font-semibold text-gray-700 mb-2">Conceptos Seleccionados</h4>
+                <div id="resumen-conceptos" x-text="selectedConcepts.length === 0 ? 'No hay conceptos seleccionados' : ''" class="text-sm text-gray-500 mb-2"></div>
+                <ul class="space-y-2 max-h-48 overflow-y-auto" id="resumen-lista">
+                </ul>
+            </div>
+
+            <!-- Resumen por concepto -->
+            <div class="mb-4 p-4 bg-gray-50 rounded-lg" id="resumen-subtotales">
+                <h4 class="text-sm font-semibold text-gray-700 mb-2">Desglose por Concepto</h4>
+                <div id="subtotales-concepto" class="text-sm text-gray-600"></div>
+            </div>
+
+            <!-- Total Conceptos -->
+            <div class="mb-4">
+                <span class="text-sm font-semibold text-gray-700">Total de Conceptos:</span>
+                <span class="ml-2 text-lg font-bold text-gray-800" id="resumen-total-conceptos">0</span>
+            </div>
+
+            <!-- Gran Total -->
+            <div class="mb-6 p-4 bg-green-100 rounded-lg border border-green-300">
+                <div class="flex justify-between items-center">
+                    <span class="text-lg font-bold text-gray-800">Gran Total:</span>
+                    <span class="text-2xl font-bold text-green-600">
+                        S/. <span id="resumen-grand-total">0.00</span>
+                    </span>
+                </div>
+            </div>
+
+            <!-- Método de Pago -->
+            <div class="mb-6">
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Método de Pago (Confirmado)</label>
+                <select name="metodo_pago_confirmado" id="metodo_pago_confirmado"
+                        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-white">
+                    <option value="EFECTIVO">Efectivo</option>
+                    <option value="YAPE">Yape</option>
+                    <option value="PLIN">Plin</option>
+                    <option value="TRANSFERENCIA">Transferencia</option>
+                    <option value="TARJETA">Tarjeta</option>
+                    <option value="OTRO">Otro</option>
+                </select>
+            </div>
+
+            <!-- Botones del modal -->
+            <div class="flex justify-end gap-3">
+                <button type="button"
+                        @click="showSummary = false"
+                        class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2.5 rounded-lg text-sm shadow">
+                    Cerrar
+                </button>
+                <button type="button"
+                        @click="confirmarResumen()"
+                        class="bg-green-600 hover:bg-green-700 text-white px-6 py-2.5 rounded-lg text-sm font-semibold shadow">
+                    <i class="fas fa-check mr-1"></i> Confirmar y Registrar
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -165,6 +245,17 @@
         const sinCuentas = document.getElementById('sin-cuentas');
         const totalMonto = document.getElementById('total-monto');
         const montoTotalInput = document.getElementById('monto_total');
+        const btnVerResumen = document.getElementById('btn-ver-resumen');
+        const btnRegistrar = document.getElementById('btn-registrar');
+        const metodoPagoSelect = document.getElementById('metodo_pago');
+        const metodoPagoConfirmado = document.getElementById('metodo_pago_confirmado');
+        const resumenLista = document.getElementById('resumen-lista');
+        const resumenTotalConceptos = document.getElementById('resumen-total-conceptos');
+        const resumenGrandTotal = document.getElementById('resumen-grand-total');
+        const subtotalesConcepto = document.getElementById('subtotales-concepto');
+
+        let selectedConcepts = [];
+        let showSummary = false;
 
         function renderCuentas() {
             const selectedOption = matriculaSelect.options[matriculaSelect.selectedIndex];
@@ -204,7 +295,10 @@
                         <input type="checkbox"
                                class="cuenta-checkbox w-5 h-5 text-green-600 rounded focus:ring-green-500"
                                data-index="${index}"
-                               data-monto="${cuenta.monto_pendiente}">
+                               data-monto="${cuenta.monto_pendiente}"
+                               data-concepto="${cuenta.concepto}"
+                               data-referencia="${cuenta.referencia}"
+                               data-id-cuenta="${cuenta.id_cuenta}">
                         <input type="hidden" name="cuentas[${index}][id_cuenta]" value="${cuenta.id_cuenta}" disabled>
                         <input type="hidden" name="cuentas[${index}][monto]"
                                id="monto-cuenta-${index}" value="0" disabled>
@@ -220,10 +314,13 @@
                 cuentasTbody.appendChild(tr);
             });
 
-            // Event listeners
             document.querySelectorAll('.cuenta-checkbox').forEach(function(checkbox) {
                 checkbox.addEventListener('change', function() {
                     const index = this.getAttribute('data-index');
+                    const concepto = this.getAttribute('data-concepto');
+                    const referencia = this.getAttribute('data-referencia');
+                    const idCuenta = this.getAttribute('data-id-cuenta');
+                    const monto = parseFloat(this.getAttribute('data-monto'));
                     const montoInput = document.querySelector(`.cuenta-monto[data-index="${index}"]`);
                     const hiddenCuenta = document.querySelector(`input[name="cuentas[${index}][id_cuenta]"]`);
                     const hiddenMonto = document.getElementById(`monto-cuenta-${index}`);
@@ -233,11 +330,13 @@
                         hiddenCuenta.disabled = false;
                         hiddenMonto.disabled = false;
                         hiddenMonto.value = montoInput.value;
+                        seleccionarConcepto(index, concepto, referencia, idCuenta, montoInput.value);
                     } else {
                         montoInput.disabled = true;
                         hiddenCuenta.disabled = true;
                         hiddenMonto.disabled = true;
                         hiddenMonto.value = 0;
+                        deseleccionarConcepto(index);
                     }
                     actualizarTotal();
                 });
@@ -256,9 +355,34 @@
                     }
 
                     hiddenMonto.value = value;
+                    actualizarConceptoMonto(index, value);
                     actualizarTotal();
                 });
             });
+        }
+
+        function seleccionarConcepto(index, concepto, referencia, idCuenta, monto) {
+            const existe = selectedConcepts.find(c => c.index === index);
+            if (!existe) {
+                selectedConcepts.push({
+                    index: index,
+                    concepto: concepto,
+                    referencia: referencia,
+                    id_cuenta: idCuenta,
+                    monto: parseFloat(monto)
+                });
+            }
+        }
+
+        function deseleccionarConcepto(index) {
+            selectedConcepts = selectedConcepts.filter(c => c.index !== index);
+        }
+
+        function actualizarConceptoMonto(index, monto) {
+            const concepto = selectedConcepts.find(c => c.index === index);
+            if (concepto) {
+                concepto.monto = parseFloat(monto);
+            }
         }
 
         function actualizarTotal() {
@@ -275,11 +399,92 @@
             montoTotalInput.value = total.toFixed(2);
         }
 
+        function actualizarResumen() {
+            resumenLista.innerHTML = '';
+            let grandTotal = 0;
+
+            const subtotales = {};
+            selectedConcepts.forEach(function(c) {
+                grandTotal += c.monto;
+                if (!subtotales[c.concepto]) {
+                    subtotales[c.concepto] = 0;
+                }
+                subtotales[c.concepto] += c.monto;
+            });
+
+            if (selectedConcepts.length === 0) {
+                resumenLista.innerHTML = '<li class="text-sm text-gray-500">No hay conceptos seleccionados</li>';
+            } else {
+                selectedConcepts.forEach(function(c) {
+                    const li = document.createElement('li');
+                    li.className = 'flex justify-between text-sm p-2 bg-gray-50 rounded';
+                    li.innerHTML = `
+                        <span>${c.concepto} (${c.referencia})</span>
+                        <span class="font-semibold">S/. ${c.monto.toFixed(2)}</span>
+                    `;
+                    resumenLista.appendChild(li);
+                });
+            }
+
+            resumenTotalConceptos.textContent = selectedConcepts.length;
+            resumenGrandTotal.textContent = grandTotal.toFixed(2);
+
+            subtotalesConcepto.innerHTML = '';
+            Object.entries(subtotales).forEach(function(entry) {
+                    const concepto = entry[0];
+                    const total = entry[1];
+                    const div = document.createElement('div');
+                    div.className = 'flex justify-between text-sm mb-1';
+                    div.innerHTML = `
+                        <span>${concepto}</span>
+                        <span>S/. ${total.toFixed(2)}</span>
+                    `;
+                    subtotalesConcepto.appendChild(div);
+                });
+
+            if (Object.keys(subtotales).length === 0) {
+                subtotalesConcepto.innerHTML = '<div class="text-sm text-gray-500">Sin conceptos</div>';
+            }
+        }
+
+        function confirmarResumen() {
+            if (selectedConcepts.length === 0) {
+                alert('Por favor, seleccione al menos un concepto.');
+                return;
+            }
+            if (!metodoPagoConfirmado.value) {
+                alert('Por favor, seleccione un método de pago.');
+                return;
+            }
+            // Actualizar el método de pago oculto con el confirmado
+            metodoPagoSelect.value = metodoPagoConfirmado.value;
+            showSummary = false;
+            // Habilitar el botón de registrar
+            btnRegistrar.disabled = false;
+            btnRegistrar.classList.remove('opacity-50', 'cursor-not-allowed');
+            btnRegistrar.classList.add('opacity-100', 'cursor-pointer');
+        }
+
+        // Exponer funciones a Alpine
+        window.selectedConcepts = selectedConcepts;
+        window.showSummary = showSummary;
+        window.confirmarResumen = confirmarResumen;
+
+        // Observar cambios en selectedConcepts para actualizar el resumen
+        const observer = new MutationObserver(function() {
+            actualizarResumen();
+        });
+
         matriculaSelect.addEventListener('change', renderCuentas);
 
         if (matriculaSelect.value) {
             renderCuentas();
         }
+
+        // Actualizar resumen cuando cambien las cantidades
+        setInterval(function() {
+            actualizarResumen();
+        }, 500);
     });
 </script>
 @endsection

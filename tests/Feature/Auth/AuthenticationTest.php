@@ -42,6 +42,18 @@ class AuthenticationTest extends TestCase
         $this->assertGuest();
     }
 
+    public function test_inactive_users_cannot_authenticate(): void
+    {
+        $user = User::factory()->create(['estado' => 'inactivo']);
+
+        $this->post('/login', [
+            'email' => $user->email,
+            'password' => 'password',
+        ]);
+
+        $this->assertGuest();
+    }
+
     public function test_users_can_logout(): void
     {
         $user = User::factory()->create();
@@ -49,6 +61,18 @@ class AuthenticationTest extends TestCase
         $response = $this->actingAs($user)->post('/logout');
 
         $this->assertGuest();
-        $response->assertRedirect('/');
+        $response->assertRedirect(route('login', absolute: false));
+    }
+
+    public function test_logout_registers_cerrar_sesion_movement(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->post('/logout');
+
+        $this->assertDatabaseHas('registro_movimientos', [
+            'user_id' => $user->id,
+            'accion' => 'CERRAR_SESION',
+        ]);
     }
 }

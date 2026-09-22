@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\Request;
 
 class Pago extends Model
 {
@@ -63,5 +65,27 @@ class Pago extends Model
     public function movimientoCaja()
     {
         return $this->hasOne(MovimientoCaja::class, 'id_pago', 'id_pago');
+    }
+
+    public function scopeFiltrar(Builder $query, Request $request): Builder
+    {
+        return $query
+            ->when($request->filled('caja'), fn ($q) => $q->where('id_caja', $request->caja))
+            ->when($request->filled('metodo'), fn ($q) => $q->where('metodo_pago', $request->metodo))
+            ->when($request->filled('estado'), fn ($q) => $q->where('estado', $request->estado))
+            ->when($request->filled('fecha_desde'), fn ($q) => $q->whereDate('fecha_pago', '>=', $request->fecha_desde))
+            ->when($request->filled('fecha_hasta'), fn ($q) => $q->whereDate('fecha_pago', '<=', $request->fecha_hasta))
+            ->when($request->filled('busqueda'), function ($q) use ($request) {
+                $q->where(function ($inner) use ($request) {
+                    $q2 = $request->busqueda;
+                    $inner->where('codigo', 'LIKE', "%{$q2}%")
+                          ->orWhere('numero_operacion', 'LIKE', "%{$q2}%")
+                          ->orWhereHas('matricula.alumno', function ($sub) use ($q2) {
+                              $sub->where('nombres', 'LIKE', "%{$q2}%")
+                                  ->orWhere('apellidos', 'LIKE', "%{$q2}%")
+                                  ->orWhere('dni', 'LIKE', "%{$q2}%");
+                          });
+                });
+            });
     }
 }

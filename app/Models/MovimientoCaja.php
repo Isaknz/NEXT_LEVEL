@@ -13,6 +13,7 @@ class MovimientoCaja extends Model
         'id_caja',
         'tipo',
         'origen',
+        'concepto',
         'id_pago',
         'id_gasto',
         'fecha_movimiento',

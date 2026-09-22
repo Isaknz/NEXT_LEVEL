@@ -3,6 +3,7 @@
 @section('title', 'Auditoría - Next Level')
 
 @section('content')
+<div x-data="{ confirmLimpiar: false }">
 <div class="flex justify-between items-center mb-6">
     <div>
         <h2 class="text-2xl font-bold text-gray-800">
@@ -10,7 +11,7 @@
         </h2>
         <p class="text-gray-500 text-sm mt-1">Historial de acciones de usuarios</p>
     </div>
-    <button onclick="document.getElementById('modal-limpiar').classList.remove('hidden')"
+    <button type="button" @click="confirmLimpiar = true"
             class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm shadow transition">
         <i class="fas fa-broom mr-1"></i> Limpiar antiguos
     </button>
@@ -230,16 +231,49 @@
             </div>
 
             <div class="flex justify-end gap-3">
-                <button type="button" onclick="document.getElementById('modal-limpiar').classList.add('hidden')"
-                        class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm">
-                    Cancelar
-                </button>
-                <button type="submit" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm"
-                        onclick="return confirm('¿Estás seguro de eliminar los registros antiguos?')">
-                    <i class="fas fa-trash mr-1"></i> Eliminar
+                <button type="button" @click="confirmLimpiar = true"
+                        class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm shadow transition">
+                    <i class="fas fa-broom mr-1"></i> Limpiar antiguos
                 </button>
             </div>
-        </form>
+        </button>
+    </div>
+
+    <!-- Modal Limpiar -->
+    <div x-show="confirmLimpiar" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" @click="confirmLimpiar = false">
+        <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-6" @click.stop>
+            <div class="flex items-center mb-4">
+                <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mr-3">
+                    <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-gray-800">Limpiar registros antiguos</h3>
+                    <p class="text-sm text-gray-500">Esta acción no se puede deshacer</p>
+                </div>
+            </div>
+
+            <form action="{{ route('auditoria.limpiar') }}" method="POST">
+                @csrf
+                <div class="mb-4">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        Eliminar registros anteriores a:
+                    </label>
+                    <input type="date" name="fecha_limite" required max="{{ date('Y-m-d', strtotime('-1 day')) }}"
+                           value="{{ date('Y-m-d', strtotime('-30 days')) }}"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500">
+                </div>
+
+                <div class="flex justify-end gap-3">
+                    <button type="button" @click="confirmLimpiar = false"
+                            class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm">
+                        Cancelar
+                    </button>
+                    <button type="submit" @click="confirmLimpiar = false" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm">
+                        <i class="fas fa-trash mr-1"></i> Eliminar
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 @endsection

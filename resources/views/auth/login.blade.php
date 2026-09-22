@@ -1,105 +1,115 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Next Level School</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <style>
-        body {
-            background: linear-gradient(135deg, #0331fc 0%, #158ee5 100%);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        .login-card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-        }
-        .input-group {
-            position: relative;
-        }
-        .input-group i {
-            position: absolute;
-            left: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #9ca3af;
-        }
-        .input-group input {
-            padding-left: 40px;
-        }
-    </style>
-</head>
-<body class="min-h-screen flex items-center justify-center p-4">
-    <div class="login-card rounded-2xl shadow-2xl w-full max-w-md p-8">
-        <!-- Logo y título -->
-        <div class="text-center mb-8">
-            <div class="w-20 h-20 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                <i class="fas fa-school text-white text-3xl"></i>
-            </div>
-            <h1 class="text-3xl font-bold text-gray-800">Next Level</h1>
-            <p class="text-gray-500 mt-2">Sistema de Gestión Financiera</p>
-        </div>
+<x-guest-layout>
+    <div class="login-shell">
+        <div class="login-layout">
+            <section class="login-brand-panel">
+                <div>
+                    <x-application-logo class="brand-logo" />
+                    <p class="mt-8 text-sm font-semibold uppercase tracking-[0.2em] text-blue-100">Next Level</p>
+                    <h1 class="mt-3 text-3xl font-bold leading-tight">Gestión que impulsa el futuro.</h1>
+                    <p class="mt-4 max-w-sm text-sm leading-6 text-blue-100">Administra matrículas, pagos y gastos desde un solo lugar.</p>
+                </div>
+                <p class="mt-8 text-xs text-blue-200">Plataforma administrativa institucional</p>
+            </section>
 
-        <!-- Mensajes de error -->
-        @if ($errors->any())
-            <div class="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded mb-6">
-                <div class="flex items-center">
-                    <i class="fas fa-exclamation-circle mr-2"></i>
-                    <div>
-                        @foreach ($errors->all() as $error)
-                            <p class="text-sm">{{ $error }}</p>
-                        @endforeach
+            <section class="login-form-panel">
+                <div class="mb-8 animate-fade-in">
+                    <p class="text-sm font-semibold text-gray-900">Bienvenido de nuevo</p>
+                    <h2 class="mt-2 text-2xl font-bold text-gray-900">Inicia sesión</h2>
+                    <p class="mt-2 text-sm text-gray-500">Ingresa tus credenciales para continuar.</p>
+                </div>
+
+                @if ($errors->any())
+                    <div class="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
+                        <div class="flex items-center">
+                            <i class="fas fa-exclamation-circle mr-2"></i>
+                            <div>
+                                @foreach ($errors->all() as $error)
+                                    <p class="text-sm">{{ $error }}</p>
+                                @endforeach
+                            </div>
+                        </div>
+                    </div>
+                @endif
+
+                @if(session('status'))
+                <div class="mb-6 rounded-lg border border-yellow-300 bg-yellow-50 p-4 text-yellow-700">
+                    <div class="flex items-center">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                        <span class="text-sm">{{ session('status') }}</span>
                     </div>
                 </div>
-            </div>
-        @endif
+                @endif
 
-        <!-- Formulario -->
-        <form method="POST" action="{{ route('login') }}">
-            @csrf
+                <form method="POST" action="{{ route('login') }}"
+                      x-data="{ showPassword: false, loading: false }"
+                      x-on:submit="loading = true"
+                      class="animate-fade-in">
+                    @csrf
 
-            <div class="mb-6">
-                <label for="email" class="block text-sm font-semibold text-gray-700 mb-2">
-                    <i class="fas fa-envelope mr-2"></i>Email
-                </label>
-                <div class="input-group">
-                    <i class="fas fa-user"></i>
-                    <input type="email" name="email" id="email" value="{{ old('email') }}"
-                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                           placeholder="tu@email.com" required autofocus>
+                    <div class="mb-5">
+                        <label for="email" class="block text-sm font-semibold text-gray-700">Correo electrónico</label>
+                        <div class="relative mt-1">
+                            <i class="fas fa-envelope absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none"></i>
+                            <input type="email" name="email" id="email" value="{{ old('email') }}"
+                                   class="login-field pl-10"
+                                   placeholder="usuario@nextlevel.edu.pe"
+                                   required autofocus autocomplete="username">
+                        </div>
+                    </div>
+
+                    <div class="mb-6">
+                        <label for="password" class="block text-sm font-semibold text-gray-700">Contraseña</label>
+                        <div class="relative mt-1">
+                            <i class="fas fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none"></i>
+                            <input x-bind:type="showPassword ? 'text' : 'password'"
+                                   name="password" id="password"
+                                   class="login-field pl-10 pr-10"
+                                   placeholder="Ingresa tu contraseña"
+                                   required autocomplete="current-password">
+                            <button type="button"
+                                    x-on:click="showPassword = !showPassword"
+                                    class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none">
+                                <i x-bind:class="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between mb-6">
+                        <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+                            <input type="checkbox" name="remember" class="w-4 h-4 rounded border-gray-300 text-blue-700 focus:ring-blue-500">
+                            Recuérdame
+                        </label>
+                        <a href="{{ route('password.request') }}" class="text-sm text-blue-700 hover:text-blue-900 font-medium">
+                            ¿Olvidaste tu contraseña?
+                        </a>
+                    </div>
+
+                    <button type="submit"
+                            x-bind:disabled="loading"
+                            class="btn-primary w-full rounded-lg px-4 py-3 font-semibold text-white">
+                        <template x-if="loading">
+                            <svg class="animate-spin h-5 w-5 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        </template>
+                        <template x-if="!loading">
+                            <i class="fas fa-arrow-right"></i>Ingresar al sistema
+                        </template>
+                    </button>
+                </form>
+
+                <div class="mt-6 text-center">
+                    <p class="text-sm text-gray-500">
+                        ¿No tienes cuenta?
+                        <a href="{{ route('register') }}" class="text-blue-700 font-semibold hover:text-blue-900">Regístrate</a>
+                    </p>
                 </div>
-            </div>
 
-            <div class="mb-6">
-                <label for="password" class="block text-sm font-semibold text-gray-700 mb-2">
-                    <i class="fas fa-lock mr-2"></i>Contraseña
-                </label>
-                <div class="input-group">
-                    <i class="fas fa-key"></i>
-                    <input type="password" name="password" id="password"
-                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                           placeholder="••••••••" required>
+                <div class="mt-8 border-t border-gray-100 pt-5 text-center text-xs text-gray-500">
+                    <i class="fas fa-shield-halved mr-1"></i>Acceso seguro para personal autorizado
                 </div>
-            </div>
-
-            <button type="submit"
-                    class="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-3 px-4 rounded-lg transition duration-300 transform hover:scale-[1.02]">
-                <i class="fas fa-sign-in-alt mr-2"></i>Iniciar Sesión
-            </button>
-        </form>
-
-        <!-- Usuarios de prueba -->
-        <div class="mt-8 p-4 bg-gray-50 rounded-lg">
-            <h3 class="text-sm font-semibold text-gray-700 mb-3">
-                <i class="fas fa-info-circle mr-2"></i>Usuarios de prueba:
-            </h3>
-            <div class="space-y-2 text-xs text-gray-600">
-                <p><strong>Admin:</strong> admin@nextlevel.edu.pe / password123</p>
-                <p><strong>Gerente:</strong> gerente@nextlevel.edu.pe / password123</p>
-                <p><strong>Secretaria:</strong> secretaria@nextlevel.edu.pe / password123</p>
-            </div>
+            </section>
         </div>
     </div>
-</body>
-</html>
+</x-guest-layout>

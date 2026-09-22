@@ -17,9 +17,11 @@ class CuentaPorCobrarController extends Controller
     /**
      * Show the form for creating a new resource.
      */
-    public function create()
+public function create()
     {
-        //
+        if (auth()->user()->role === 'cajero') {
+            return abort(403, 'Sin permisos');
+        }
     }
 
     /**
@@ -43,6 +45,9 @@ class CuentaPorCobrarController extends Controller
      */
     public function edit(string $id)
     {
+        if (auth()->user()->role === 'cajero') {
+            return abort(403, 'Sin permisos');
+        }
         //
     }
 
@@ -51,6 +56,9 @@ class CuentaPorCobrarController extends Controller
      */
     public function update(Request $request, string $id)
     {
+        if (auth()->user()->role === 'cajero') {
+            return abort(403, 'Sin permisos');
+        }
         //
     }
 
@@ -59,6 +67,9 @@ class CuentaPorCobrarController extends Controller
      */
     public function destroy(string $id)
     {
+        if (auth()->user()->role === 'cajero') {
+            return abort(403, 'Sin permisos');
+        }
         //
     }
 }

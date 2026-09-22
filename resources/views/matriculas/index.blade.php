@@ -208,15 +208,23 @@
                                class="bg-yellow-100 hover:bg-yellow-200 text-yellow-700 p-2 rounded-lg transition" title="Editar">
                                 <i class="fas fa-edit text-xs"></i>
                             </a>
-                            <form action="{{ route('matriculas.destroy', $matricula->id_matricula) }}" method="POST" class="inline">
+                            <form action="{{ route('matriculas.destroy', $matricula->id_matricula) }}" method="POST" 
+                                  x-data="{ confirmDelete: false }" class="inline">
                                 @csrf
                                 @method('DELETE')
-                                <button type="submit"
-                                        class="bg-red-100 hover:bg-red-200 text-red-700 p-2 rounded-lg transition"
-                                        title="Eliminar"
-                                        onclick="return confirm('¿Estás seguro de eliminar esta matrícula?')">
+                                <button type="button" @click="confirmDelete = true"
+                                        class="bg-red-100 hover:bg-red-200 text-red-700 p-2 rounded-lg transition" title="Eliminar">
                                     <i class="fas fa-trash text-xs"></i>
                                 </button>
+                                <div x-show="confirmDelete" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                                    <div class="bg-white rounded-lg p-6 max-w-sm">
+                                        <p class="font-semibold">¿Seguro que deseas eliminar esta matrícula?</p>
+                                        <div class="mt-4 flex gap-2">
+                                            <button @click="confirmDelete = false" class="btn-secondary rounded px-3 py-1">Cancelar</button>
+                                            <button type="submit" @click="confirmDelete = false" class="bg-red-500 hover:bg-red-600 text-white rounded px-3 py-1">Confirmar</button>
+                                        </div>
+                                    </div>
+                                </div>
                             </form>
                         </div>
                     </td>

@@ -54,6 +54,7 @@ class RegistroMovimiento extends Model
             'EXPORTAR' => 'purple',
             'IMPRIMIR' => 'indigo',
             'INICIAR_SESION' => 'teal',
+            'CERRAR_SESION' => 'slate',
             default => 'gray',
         };
     }
@@ -69,6 +70,7 @@ class RegistroMovimiento extends Model
             'EXPORTAR' => 'fa-file-export',
             'IMPRIMIR' => 'fa-print',
             'INICIAR_SESION' => 'fa-sign-in-alt',
+            'CERRAR_SESION' => 'fa-sign-out-alt',
             default => 'fa-circle',
         };
     }

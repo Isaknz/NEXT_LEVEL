@@ -1,59 +1,90 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Next Level School
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Sistema de gestión escolar y financiera para el colegio/academia "Next Level". Permite administrar alumnos, apoderados, matrículas, pagos, gastos, cajas y una bitácora de auditoría de todos los movimientos.
 
-## About Laravel
+## Tecnologías
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- **Backend:** Laravel 12 (PHP 8.2+)
+- **Frontend:** Blade + Tailwind CSS + Alpine.js (Vite)
+- **Base de datos:** MySQL 8
+- **Autenticación:** personalizada (login propio con roles)
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Roles
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+| Rol        | Alcance                                                                  |
+|------------|--------------------------------------------------------------------------|
+| `admin`    | Acceso total (usuarios, auditoría, anular pagos/gastos)                  |
+| `gerente`  | Reportes y anular pagos/gastos                                           |
+| `secretaria` | Registro de alumnos, matrículas, pagos y gastos                        |
 
-## Learning Laravel
+## Instalación
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+```bash
+composer install
+cp .env.example .env
+php artisan key:generate
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+# Configura los datos de MySQL en .env (DB_DATABASE, DB_USERNAME, DB_PASSWORD)
+php artisan migrate
+php artisan db:seed
 
-## Laravel Sponsors
+npm install
+npm run build
+```
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+El seeder crea los catálogos base (niveles, grados, cajas, conceptos, categorías) y un usuario administrador:
 
-### Premium Partners
+- Email: `admin@nextlevel.edu.pe`
+- Password: `admin123`
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+> Cambia la contraseña del administrador después del primer ingreso.
 
-## Contributing
+## Desarrollo
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+```bash
+npm run dev   # Vite
+php artisan serve
+```
 
-## Code of Conduct
+O con el script integral:
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```bash
+composer dev
+```
 
-## Security Vulnerabilities
+## Tests
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```bash
+composer test
+```
 
-## License
+Los tests cubren la lógica financiera crítica: registro y anulación de pagos, saldos de cuentas por cobrar, gastos y restricciones de matrículas.
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## Módulos
+
+- **Alumnos y Apoderados:** maestro de personas con estado y soft-delete.
+- **Matrículas:** escolar (grado) o academia (ciclo), con validación de matrículas activas duplicadas.
+- **Pagos:** se aplican a cuentas por cobrar con control de saldos; generan movimiento de caja y comprobante. Solo admin/gerente pueden anular.
+- **Gastos:** registro con comprobante en PDF/imagen y movimiento de caja (EGRESO). Solo admin/gerente pueden anular.
+- **Cuentas por Cobrar:** estados `PENDIENTE`, `PARCIAL`, `PAGADA` calculados a partir de los pagos confirmados.
+- **Cajas:** efectivo, banco o billetera digital (Yape/PLIN).
+- **Auditoría:** registro de todas las acciones (`CREAR`, `ACTUALIZAR`, `ANULAR`, `ELIMINAR`, `INICIAR_SESION`, `CERRAR_SESION`, …) con valores antes/después en JSON.
+
+## Estructura relevante
+
+```
+app/Http/Requests/      # Validaciones por entidad (Form Requests)
+app/Models/             # Modelos Eloquent con scopes de filtrado (scopeFiltrar)
+app/Policies/           # Autorizaciones finas (anulación de pagos/gastos)
+database/migrations/    # Esquema completo versionado
+database/seeders/       # Catálogos + usuario admin
+tests/Feature/          # Tests de flujos críticos
+```
+
+## Buenas prácticas incluidas
+
+- Form Requests para validación centralizada.
+- Errores de dominio (saldos, montos) como `ValidationException`; errores inesperados se registran en logs y muestran mensajes genéricos.
+- `throttle:login` (5 intentos/minuto) contra fuerza bruta.
+- Transacciones en operaciones financieras con rollback.
+- Lógica de saldos en el modelo (`CuentaPorCobrar::recalcularEstado()`), consistente entre alta y anulación.

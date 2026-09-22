@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\AnulacionRequest;
+use App\Http\Requests\GastoRequest;
 use App\Models\Gasto;
 use App\Models\CategoriaGasto;
 use App\Models\Caja;
@@ -9,7 +11,8 @@ use App\Models\MovimientoCaja;
 use App\Traits\RegistraMovimientos;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class GastoController extends Controller
 {
@@ -17,50 +20,16 @@ class GastoController extends Controller
 
     public function index(Request $request)
     {
-        $query = Gasto::with(['categoria', 'caja', 'registradoPor']);
-
-        // Filtro por caja
-        if ($request->has('caja') && $request->caja != '') {
-            $query->where('id_caja', $request->caja);
-        }
-
-        // Filtro por categoría
-        if ($request->has('categoria') && $request->categoria != '') {
-            $query->where('id_categoria_gasto', $request->categoria);
-        }
-
-        // Filtro por estado
-        if ($request->has('estado') && $request->estado != '') {
-            $query->where('estado', $request->estado);
-        }
-
-        // Filtro por fecha desde
-        if ($request->has('fecha_desde') && $request->fecha_desde != '') {
-            $query->whereDate('fecha_gasto', '>=', $request->fecha_desde);
-        }
-
-        // Filtro por fecha hasta
-        if ($request->has('fecha_hasta') && $request->fecha_hasta != '') {
-            $query->whereDate('fecha_gasto', '<=', $request->fecha_hasta);
-        }
-
-        // Búsqueda
-        if ($request->has('busqueda') && $request->busqueda != '') {
-            $busqueda = $request->busqueda;
-            $query->where(function($q) use ($busqueda) {
-                $q->where('codigo', 'LIKE', "%{$busqueda}%")
-                  ->orWhere('concepto', 'LIKE', "%{$busqueda}%")
-                  ->orWhere('proveedor', 'LIKE', "%{$busqueda}%")
-                  ->orWhere('numero_comprobante', 'LIKE', "%{$busqueda}%");
-            });
-        }
-
-        $gastos = $query->orderBy('fecha_gasto', 'desc')->paginate(20);
+        $gastos = Gasto::query()
+            ->with(['categoria', 'caja', 'registradoPor'])
+            ->filtrar($request)
+            ->orderBy('fecha_gasto', 'desc')
+            ->paginate(20)
+            ->withQueryString();
 
         $cajas = Caja::where('estado', 'ACTIVA')->get();
         $categorias = CategoriaGasto::where('estado', 'ACTIVO')->get();
 
-        // Estadísticas
         $stats = [
             'total' => Gasto::where('estado', 'REGISTRADO')->count(),
             'total_mes' => Gasto::where('estado', 'REGISTRADO')
@@ -84,63 +53,62 @@ class GastoController extends Controller
         return view('gastos.create', compact('cajas', 'categorias'));
     }
 
-    public function store(Request $request)
+    public function store(GastoRequest $request)
     {
-        $validated = $request->validate([
-            'codigo' => ['required', 'string', 'max:40', Rule::unique('gastos', 'codigo')],
-            'id_categoria_gasto' => 'required|exists:categorias_gasto,id_categoria_gasto',
-            'id_caja' => 'required|exists:cajas,id_caja',
-            'fecha_gasto' => 'required|date',
-            'proveedor' => 'nullable|string|max:150',
-            'concepto' => 'required|string|max:150',
-            'descripcion' => 'nullable|string|max:500',
-            'monto' => 'required|numeric|min:0.01',
-            'tipo_comprobante' => 'required|in:BOLETA,FACTURA,RECIBO,NOTA,SIN_COMPROBANTE',
-            'serie_comprobante' => 'nullable|string|max:10',
-            'numero_comprobante' => 'nullable|string|max:50',
-            'archivo_url' => 'nullable|string|max:500',
-        ]);
+        $datos = $request->validated();
+
+        $datos['estado'] = 'REGISTRADO';
+        $datos['registrado_por'] = auth()->id();
+        $datos['archivo_url'] = $this->guardarComprobante($request);
+
+        unset($datos['archivo']);
+
+        $gasto = null;
 
         try {
-            DB::beginTransaction();
+            DB::transaction(function () use ($request, $datos, &$gasto) {
+                $gasto = Gasto::create($datos);
 
-            $validated['estado'] = 'REGISTRADO';
-            $validated['registrado_por'] = auth()->id();
+                MovimientoCaja::create([
+                    'id_caja' => $datos['id_caja'],
+                    'tipo' => 'EGRESO',
+                    'origen' => 'GASTO',
+                    'id_gasto' => $gasto->id_gasto,
+                    'fecha_movimiento' => now(),
+                    'monto' => $datos['monto'],
+                    'descripcion' => "Gasto {$gasto->codigo} - {$gasto->concepto}",
+                    'estado' => 'ACTIVO',
+                    'registrado_por' => auth()->id(),
+                ]);
+            });
+        } catch (\Throwable $e) {
+            if ($datos['archivo_url'] ?? false) {
+                Storage::disk('public')->delete($datos['archivo_url']);
+            }
 
-            $gasto = Gasto::create($validated);
-
-            // Registrar movimiento de caja (EGRESO)
-            MovimientoCaja::create([
-                'id_caja' => $validated['id_caja'],
-                'tipo' => 'EGRESO',
-                'origen' => 'GASTO',
-                'id_gasto' => $gasto->id_gasto,
-                'fecha_movimiento' => now(),
-                'monto' => $validated['monto'],
-                'descripcion' => "Gasto {$gasto->codigo} - {$gasto->concepto}",
-                'estado' => 'ACTIVO',
-                'registrado_por' => auth()->id(),
+            Log::error('Error al registrar gasto', [
+                'exception' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'datos' => $datos,
             ]);
 
-            DB::commit();
-
-            self::registrarMovimiento(
-                'CREAR',
-                'Gastos',
-                'Gasto',
-                $gasto->id_gasto,
-                "Registró el gasto {$gasto->codigo} por S/. {$gasto->monto}",
-                null,
-                $gasto->toArray()
-            );
-
-            return redirect()->route('gastos.show', $gasto->id_gasto)
-                            ->with('success', '¡Gasto registrado exitosamente!');
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return back()->withErrors(['error' => $e->getMessage()])->withInput();
+            return back()->withErrors([
+                'error' => 'Ocurrió un error al registrar el gasto. Inténtalo nuevamente.',
+            ])->withInput();
         }
+
+        self::registrarMovimiento(
+            'CREAR',
+            'Gastos',
+            'Gasto',
+            $gasto->id_gasto,
+            "Registró el gasto {$gasto->codigo} por S/. {$gasto->monto}",
+            null,
+            $gasto->toArray()
+        );
+
+        return redirect()->route('gastos.show', $gasto->id_gasto)
+                        ->with('success', '¡Gasto registrado exitosamente!');
     }
 
     public function show(Gasto $gasto)
@@ -151,6 +119,9 @@ class GastoController extends Controller
 
     public function edit(Gasto $gasto)
     {
+        if (auth()->user()->role === 'cajero') {
+            return abort(403, 'Sin permisos');
+        }
         if ($gasto->estado === 'ANULADO') {
             return redirect()->route('gastos.index')
                             ->with('error', 'No se puede editar un gasto anulado.');
@@ -162,8 +133,11 @@ class GastoController extends Controller
         return view('gastos.edit', compact('gasto', 'cajas', 'categorias'));
     }
 
-    public function update(Request $request, Gasto $gasto)
+    public function update(GastoRequest $request, Gasto $gasto)
     {
+        if (auth()->user()->role === 'cajero') {
+            return abort(403, 'Sin permisos');
+        }
         if ($gasto->estado === 'ANULADO') {
             return redirect()->route('gastos.index')
                             ->with('error', 'No se puede editar un gasto anulado.');
@@ -171,60 +145,66 @@ class GastoController extends Controller
 
         $valoresAnteriores = $gasto->toArray();
 
-        $validated = $request->validate([
-            'codigo' => ['required', 'string', 'max:40', Rule::unique('gastos', 'codigo')->ignore($gasto->id_gasto, 'id_gasto')],
-            'id_categoria_gasto' => 'required|exists:categorias_gasto,id_categoria_gasto',
-            'id_caja' => 'required|exists:cajas,id_caja',
-            'fecha_gasto' => 'required|date',
-            'proveedor' => 'nullable|string|max:150',
-            'concepto' => 'required|string|max:150',
-            'descripcion' => 'nullable|string|max:500',
-            'monto' => 'required|numeric|min:0.01',
-            'tipo_comprobante' => 'required|in:BOLETA,FACTURA,RECIBO,NOTA,SIN_COMPROBANTE',
-            'serie_comprobante' => 'nullable|string|max:10',
-            'numero_comprobante' => 'nullable|string|max:50',
-            'archivo_url' => 'nullable|string|max:500',
-        ]);
+        $datos = $request->validated();
+
+        if ($request->hasFile('archivo')) {
+            if ($gasto->archivo_url) {
+                Storage::disk('public')->delete($gasto->archivo_url);
+            }
+            $datos['archivo_url'] = $this->guardarComprobante($request);
+        }
+
+        unset($datos['archivo']);
 
         try {
-            DB::beginTransaction();
+            DB::transaction(function () use ($request, $gasto, $datos) {
+                $gasto->update($datos);
 
-            $gasto->update($validated);
+                MovimientoCaja::where('id_gasto', $gasto->id_gasto)
+                              ->update([
+                                  'id_caja' => $datos['id_caja'],
+                                  'monto' => $datos['monto'],
+                                  'descripcion' => "Gasto {$gasto->codigo} - {$gasto->concepto}",
+                              ]);
+            });
+        } catch (\Throwable $e) {
+            Log::error('Error al actualizar gasto', [
+                'exception' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'id_gasto' => $gasto->id_gasto,
+            ]);
 
-            // Actualizar el movimiento de caja asociado
-            MovimientoCaja::where('id_gasto', $gasto->id_gasto)
-                          ->update([
-                              'id_caja' => $validated['id_caja'],
-                              'monto' => $validated['monto'],
-                              'descripcion' => "Gasto {$gasto->codigo} - {$gasto->concepto}",
-                          ]);
-
-            DB::commit();
-
-            self::registrarMovimiento(
-                'ACTUALIZAR',
-                'Gastos',
-                'Gasto',
-                $gasto->id_gasto,
-                "Actualizó el gasto {$gasto->codigo}",
-                $valoresAnteriores,
-                $gasto->fresh()->toArray()
-            );
-
-            return redirect()->route('gastos.index')
-                            ->with('success', '¡Gasto actualizado exitosamente!');
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return back()->withErrors(['error' => $e->getMessage()])->withInput();
+            return back()->withErrors([
+                'error' => 'Ocurrió un error al actualizar el gasto. Inténtalo nuevamente.',
+            ])->withInput();
         }
+
+        self::registrarMovimiento(
+            'ACTUALIZAR',
+            'Gastos',
+            'Gasto',
+            $gasto->id_gasto,
+            "Actualizó el gasto {$gasto->codigo}",
+            $valoresAnteriores,
+            $gasto->fresh()->toArray()
+        );
+
+        return redirect()->route('gastos.index')
+                        ->with('success', '¡Gasto actualizado exitosamente!');
     }
 
-    public function anular(Request $request, Gasto $gasto)
+    public function anular(AnulacionRequest $request, Gasto $gasto)
     {
-        $request->validate([
-            'motivo_anulacion' => 'required|string|max:255',
-        ]);
+        if (auth()->user()->role === 'secretaria') {
+            return abort(403);
+        }
+        if (auth()->user()->role === 'cajero') {
+            return abort(403, 'Sin permisos');
+        }
+
+        if ($request->user()->cannot('anular', $gasto)) {
+            return back()->withErrors(['error' => 'No tienes permiso para anular gastos.']);
+        }
 
         if ($gasto->estado === 'ANULADO') {
             return back()->withErrors(['error' => 'Este gasto ya está anulado.']);
@@ -239,33 +219,58 @@ class GastoController extends Controller
             $gasto->motivo_anulacion = $request->motivo_anulacion;
             $gasto->save();
 
-            // Anular movimiento de caja
             MovimientoCaja::where('id_gasto', $gasto->id_gasto)
                           ->update(['estado' => 'ANULADO']);
 
             DB::commit();
-
-            self::registrarMovimiento(
-                'ANULAR',
-                'Gastos',
-                'Gasto',
-                $gasto->id_gasto,
-                "Anuló el gasto {$gasto->codigo}. Motivo: {$request->motivo_anulacion}",
-                ['estado' => 'REGISTRADO'],
-                ['estado' => 'ANULADO']
-            );
-
-            return redirect()->route('gastos.index')
-                            ->with('success', '¡Gasto anulado exitosamente!');
-
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             DB::rollBack();
-            return back()->withErrors(['error' => $e->getMessage()]);
+
+            Log::error('Error al anular gasto', [
+                'exception' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'id_gasto' => $gasto->id_gasto,
+            ]);
+
+            return back()->withErrors([
+                'error' => 'Ocurrió un error al anular el gasto. Inténtalo nuevamente.',
+            ]);
         }
+
+        self::registrarMovimiento(
+            'ANULAR',
+            'Gastos',
+            'Gasto',
+            $gasto->id_gasto,
+            "Anuló el gasto {$gasto->codigo}. Motivo: {$request->motivo_anulacion}",
+            ['estado' => 'REGISTRADO'],
+            ['estado' => 'ANULADO']
+        );
+
+        return redirect()->route('gastos.index')
+                        ->with('success', '¡Gasto anulado exitosamente!');
     }
 
     public function destroy(Gasto $gasto)
     {
+        if (auth()->user()->role === 'secretaria') {
+            return abort(403);
+        }
+        if (auth()->user()->role === 'cajero') {
+            return abort(403, 'Sin permisos');
+        }
         return back()->withErrors(['error' => 'Para eliminar un gasto, primero debe anularlo.']);
+    }
+
+    /**
+     * Guarda el comprobante cargado en el almacenamiento público.
+     */
+    private function guardarComprobante(GastoRequest $request): ?string
+    {
+        if (! $request->hasFile('archivo')) {
+            return null;
+        }
+
+        return $request->file('archivo')->store('comprobantes/gastos', 'public');
     }
 }

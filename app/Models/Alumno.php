@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Http\Request;
 
 class Alumno extends Model
 {
-    use SoftDeletes;
+    use HasFactory, SoftDeletes;
 
     protected $table = 'alumnos';
     protected $primaryKey = 'id_alumno';
@@ -26,10 +29,14 @@ class Alumno extends Model
         'id_apoderado',
         'parentesco',
         'estado',
+        'foto',
+        'fecha_ingreso',
+        'observaciones',
     ];
 
     protected $casts = [
         'fecha_nacimiento' => 'date',
+        'fecha_ingreso' => 'date',
     ];
 
     public function grado()
@@ -70,5 +77,29 @@ class Alumno extends Model
     {
         $principal = $this->apoderados()->wherePivot('es_principal', 1)->first();
         return $principal ?? $this->apoderados()->first();
+    }
+
+    public function scopeFiltrar(Builder $query, Request $request): Builder
+    {
+        return $query
+            ->when($request->filled('nivel'), function ($q) use ($request) {
+                if ($request->nivel == 3) {
+                    $q->where('codigo', 'LIKE', 'AC%');
+                } else {
+                    $q->whereHas('grado', function ($g) use ($request) {
+                        $g->where('id_nivel', $request->nivel);
+                    });
+                }
+            })
+            ->when($request->filled('grado'), fn ($q) => $q->where('id_grado', $request->grado))
+            ->when($request->filled('busqueda'), function ($q) use ($request) {
+                $q->where(function ($inner) use ($request) {
+                    $b = $request->busqueda;
+                    $inner->where('nombres', 'LIKE', "%{$b}%")
+                          ->orWhere('apellidos', 'LIKE', "%{$b}%")
+                          ->orWhere('dni', 'LIKE', "%{$b}%")
+                          ->orWhere('codigo', 'LIKE', "%{$b}%");
+                });
+            });
     }
 }

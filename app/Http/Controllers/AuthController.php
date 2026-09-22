@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules;
 use App\Models\User;
 use App\Traits\RegistraMovimientos;
 
@@ -23,7 +25,7 @@ class AuthController extends Controller
             'password' => 'required',
         ]);
 
-        if (Auth::attempt($credentials)) {
+        if (Auth::attempt($credentials, $request->boolean('remember'))) {
             $user = Auth::user();
 
             if ($user->estado === 'inactivo') {
@@ -35,6 +37,9 @@ class AuthController extends Controller
 
             $request->session()->regenerate();
 
+            // Actualizar último acceso
+            $user->update(['last_login' => now()]);
+
             // Registrar el inicio de sesión
             self::registrarMovimiento(
                 'INICIAR_SESION',
@@ -44,12 +49,39 @@ class AuthController extends Controller
                 "El usuario {$user->nombre} inició sesión"
             );
 
+            // Advertencia si es el primer inicio de sesión
+            if (is_null($user->password_changed_at)) {
+                return redirect()->route('password.change')->with('status', '¡Bienvenido! Por favor, cambia tu contraseña temporal.');
+            }
+
             return redirect()->route('dashboard');
         }
 
         return back()->withErrors([
             'email' => 'Las credenciales no coinciden.',
         ])->onlyInput('email');
+    }
+
+    public function showChangePassword()
+    {
+        return view('auth.change-password');
+    }
+
+    public function updatePassword(Request $request)
+    {
+        $request->validate([
+            'password_current' => ['required'],
+            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+        ]);
+        $user = auth()->user();
+        if (!Hash::check($request->password_current, $user->password)) {
+            return back()->withErrors(['password_current' => 'La contraseña actual es incorrecta.']);
+        }
+        $user->update([
+            'password' => Hash::make($request->password),
+            'password_changed_at' => now(),
+        ]);
+        return back()->with('status', 'Contraseña actualizada');
     }
 
     public function logout(Request $request)
@@ -59,7 +91,7 @@ class AuthController extends Controller
         if ($user) {
             // Registrar el cierre de sesión
             self::registrarMovimiento(
-                'INICIAR_SESION',
+                'CERRAR_SESION',
                 'Autenticación',
                 'User',
                 $user->id,
