@@ -17,7 +17,9 @@ return new class extends Migration
             $table->unsignedBigInteger('usuarios_id_cerrado')->nullable()->after('fecha_cierre');
         });
 
-        DB::statement("ALTER TABLE cajas MODIFY estado ENUM('ACTIVA','INACTIVA','CERRADA') DEFAULT 'ACTIVA'");
+        if (DB::connection()->getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE cajas MODIFY estado ENUM('ACTIVA','INACTIVA','CERRADA') DEFAULT 'ACTIVA'");
+        }
 
         Schema::table('cajas', function (Blueprint $table) {
             $table->foreign('usuarios_id_cerrado')->references('id')->on('users')->nullOnDelete();
@@ -31,6 +33,8 @@ return new class extends Migration
             $table->dropColumn(['saldo_inicial', 'monto_apertura', 'monto_cierre', 'fecha_cierre', 'usuarios_id_cerrado']);
         });
 
-        DB::statement("ALTER TABLE cajas MODIFY estado ENUM('ACTIVA','INACTIVA') DEFAULT 'ACTIVA'");
+        if (DB::connection()->getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE cajas MODIFY estado ENUM('ACTIVA','INACTIVA') DEFAULT 'ACTIVA'");
+        }
     }
 };

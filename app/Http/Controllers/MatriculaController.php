@@ -59,9 +59,11 @@ class MatriculaController extends Controller
     public function store(MatriculaRequest $request)
     {
         $validated = $request->validated();
+        $pagosIniciales = $request->input('pagos_iniciales');
 
         $existe = Matricula::where('id_alumno', $validated['id_alumno'])
                           ->where('id_periodo', $validated['id_periodo'])
+                          ->where('modalidad', $validated['modalidad'])
                           ->whereIn('estado', ['ACTIVA', 'PENDIENTE'])
                           ->exists();
 
@@ -72,15 +74,14 @@ class MatriculaController extends Controller
         }
 
         $validated['registrado_por'] = auth()->id();
-
         $matricula = null;
 
         try {
-            DB::transaction(function () use ($validated, &$matricula) {
+            DB::transaction(function () use ($validated, $pagosIniciales, &$matricula) {
                 $matricula = Matricula::create($validated);
 
-                if (!empty($request->input('pagos_iniciales'))) {
-                    foreach ($request->input('pagos_iniciales') as $pagoData) {
+                if (!empty($pagosIniciales)) {
+                    foreach ($pagosIniciales as $pagoData) {
                         $pago = \App\Models\Pago::create([
                             'codigo' => 'PAG-' . $matricula->codigo . '-' . now()->format('ymd'),
                             'id_matricula' => $matricula->id_matricula,

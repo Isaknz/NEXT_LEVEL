@@ -15,6 +15,8 @@ class Grado extends Model
     protected $fillable = [
         'id_nivel',
         'nombre',
+        'orden',
+        'estado',
     ];
 
     public function nivel()

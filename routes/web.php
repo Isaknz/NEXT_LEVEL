@@ -43,7 +43,7 @@ Route::middleware('guest')->group(function () {
     Route::get('/forgot-password', [PasswordResetLinkController::class, 'create'])->name('password.request');
     Route::post('/forgot-password', [PasswordResetLinkController::class, 'store'])->name('password.email');
     Route::get('/reset-password/{token}', [NewPasswordController::class, 'create'])->name('password.reset');
-    Route::post('/reset-password', [NewPasswordController::class, 'store'])->name('password.update');
+    Route::post('/reset-password', [NewPasswordController::class, 'store'])->name('password.reset.update');
 });
 
 Route::middleware(['auth'])->group(function () {
@@ -64,9 +64,9 @@ Route::middleware(['auth'])->group(function () {
         Route::resource('alumnos', AlumnoController::class);
         Route::resource('apoderados', ApoderadoController::class);
         Route::resource('matriculas', MatriculaController::class);
-Route::resource('pagos', PagoController::class);
-    Route::post('/pagos/{pago}/anular', [PagoController::class, 'anular'])->name('pagos.anular');
-    Route::get('/pagos/{pago}/comprobante', [PagoController::class, 'comprobante'])->name('pagos.comprobante');
+        Route::resource('pagos', PagoController::class);
+        Route::post('/pagos/{pago}/anular', [PagoController::class, 'anular'])->name('pagos.anular');
+        Route::get('/pagos/{pago}/comprobante', [PagoController::class, 'comprobante'])->name('pagos.comprobante');
         Route::resource('gastos', GastoController::class);
         Route::post('/gastos/{gasto}/anular', [GastoController::class, 'anular'])->name('gastos.anular');
         Route::resource('cuentas-por-cobrar', CuentaPorCobrarController::class);
@@ -84,10 +84,12 @@ Route::resource('pagos', PagoController::class);
         Route::get('/reportes/deudores', [ReporteController::class, 'deudores'])->name('reportes.deudores');
         Route::get('/reportes/vencidos', [ReporteController::class, 'vencidos'])->name('reportes.vencidos');
         Route::get('/reportes/export/excel', [ReporteController::class, 'exportExcel'])->name('reportes.export.excel');
+        Route::get('/reportes/export', [ReporteController::class, 'exportExcel'])->name('reportes.export');
         Route::get('/reportes/export/pdf', [ReporteController::class, 'exportPdf'])->name('reportes.export.pdf');
         Route::resource('reportes', ReporteController::class);
     });
 
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
 
     Route::middleware(['check.role:admin,gerente'])->group(function () {

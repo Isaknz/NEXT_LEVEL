@@ -50,7 +50,7 @@
     <div class="stat-card bg-white rounded-xl shadow p-6">
         <div class="flex items-center justify-between">
             <div>
-                <p class="text-sm text-gray-500">Ingresos (Pagos)</p>
+                <p class="text-sm text-gray-500">Total Ingresos</p>
                 <p class="text-3xl font-bold text-green-600">S/. {{ number_format($total_ingresos ?? \App\Models\Pago::where('estado', 'CONFIRMADO')->sum('monto_total'), 2) }}</p>
             </div>
             <div class="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center">
@@ -64,7 +64,7 @@
     <div class="stat-card bg-white rounded-xl shadow p-6">
         <div class="flex items-center justify-between">
             <div>
-                <p class="text-sm text-gray-500">Gastos</p>
+                <p class="text-sm text-gray-500">Total Egresos</p>
                 <p class="text-3xl font-bold text-red-600">S/. {{ number_format($total_egresos ?? \App\Models\Gasto::where('estado', 'REGISTRADO')->sum('monto'), 2) }}</p>
             </div>
             <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
@@ -146,7 +146,7 @@
             <select class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <option value="">Todos los periodos</option>
                 @foreach(\App\Models\PeriodoAcademico::all() as $periodo)
-                    <option value="{{ $periodo->id }}">{{ $periodo->nombre }}</option>
+                    <option value="{{ $periodo->id_periodo }}">{{ $periodo->nombre }}</option>
                 @endforeach
             </select>
         </div>
@@ -163,7 +163,7 @@
             <select class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <option value="">Todas las cajas</option>
                 @foreach(\App\Models\Caja::all() as $caja)
-                    <option value="{{ $caja->id }}">{{ $caja->nombre }}</option>
+                    <option value="{{ $caja->id_caja }}">{{ $caja->nombre }}</option>
                 @endforeach
             </select>
         </div>

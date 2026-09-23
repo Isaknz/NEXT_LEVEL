@@ -8,6 +8,11 @@ use Illuminate\Validation\Rules\Password;
 
 class ProfileController extends Controller
 {
+    public function edit()
+    {
+        return view('profile.edit');
+    }
+
     public function update(Request $request)
     {
         if (auth()->user()->role === 'cajero') {

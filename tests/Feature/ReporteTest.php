@@ -26,10 +26,10 @@ class ReporteTest extends TestCase
         $user = User::factory()->create(['role' => 'admin']);
         $this->actingAs($user);
 
-        $response = $this->get('/reportes?format=csv');
+        $response = $this->get('/reportes/export?format=csv');
 
         $response->assertStatus(200);
-        $response->assertHeader('Content-Type', 'text/csv');
+        $response->assertHeader('Content-Type', 'text/csv; charset=utf-8');
     }
 
     public function test_can_view_deudores(): void

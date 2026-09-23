@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class CategoriaGasto extends Model
 {
+    use HasFactory;
+
     protected $table = 'categorias_gasto';
     protected $primaryKey = 'id_categoria_gasto';
 

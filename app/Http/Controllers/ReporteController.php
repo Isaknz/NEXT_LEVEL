@@ -41,7 +41,7 @@ class ReporteController extends Controller
 
     public function exportPdf()
     {
-        $reportes = \App\Models\Pago::with(['alumno', 'matricula'])->get();
+        $reportes = \App\Models\Pago::with(['matricula.alumno', 'matricula'])->get();
         $pdf = PDF::loadView('reportes.pdf', compact('reportes'));
         return $pdf->download('reportes.pdf');
     }

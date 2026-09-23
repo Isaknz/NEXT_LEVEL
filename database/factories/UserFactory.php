@@ -30,6 +30,7 @@ class UserFactory extends Factory
             'password' => static::$password ??= Hash::make('password'),
             'role' => 'secretaria',
             'estado' => 'activo',
+            'password_changed_at' => now(),
             'remember_token' => Str::random(10),
         ];
     }
@@ -41,6 +42,13 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'role' => 'admin',
+        ]);
+    }
+
+    public function cajero(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => 'cajero',
         ]);
     }
 

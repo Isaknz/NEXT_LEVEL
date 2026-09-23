@@ -30,7 +30,7 @@
         <tbody>
             @foreach($reportes as $reporte)
             <tr>
-                <td>{{ $reporte->alumno->nombre_completo ?? 'N/A' }}</td>
+                <td>{{ $reporte->matricula->alumno->nombre_completo ?? 'N/A' }}</td>
                 <td>{{ $reporte->matricula->codigo ?? 'N/A' }}</td>
                 <td>{{ $reporte->metodo_pago }}</td>
                 <td>{{ number_format($reporte->monto_total, 2) }}</td>

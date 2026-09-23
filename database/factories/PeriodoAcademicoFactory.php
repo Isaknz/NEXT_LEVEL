@@ -13,7 +13,7 @@ class PeriodoAcademicoFactory extends Factory
     public function definition(): array
     {
         return [
-            'codigo' => 'P' . fake()->unique()->year(),
+            'codigo' => 'P' . fake()->unique()->randomNumber(4),
             'nombre' => 'Periodo ' . fake()->year(),
             'anio' => fake()->year(),
             'fecha_inicio' => fn () => now()->startOfYear(),

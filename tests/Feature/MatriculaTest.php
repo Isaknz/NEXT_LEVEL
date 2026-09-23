@@ -22,13 +22,15 @@ class MatriculaTest extends TestCase
         $user = User::factory()->create();
         $this->actingAs($user);
 
+        $nivel = \App\Models\Nivel::factory()->create();
+
         $response = $this->post('/matriculas', [
             'codigo' => 'MAT-TEST-001',
             'id_alumno' => \App\Models\Alumno::factory()->create()->id_alumno,
             'id_periodo' => \App\Models\PeriodoAcademico::factory()->create()->id_periodo,
-            'id_nivel' => \App\Models\Nivel::factory()->create()->id_nivel,
+            'id_nivel' => $nivel->id_nivel,
             'modalidad' => 'ESCOLAR',
-            'id_grado' => \App\Models\Grado::factory()->create()->id_grado,
+            'id_grado' => \App\Models\Grado::factory()->create(['id_nivel' => $nivel->id_nivel])->id_grado,
             'fecha_matricula' => now()->format('Y-m-d'),
             'tipo_matricula' => 'NUEVO',
             'estado' => 'ACTIVA',
@@ -62,7 +64,7 @@ class MatriculaTest extends TestCase
             'estado' => 'ACTIVA',
         ]);
 
-        $this->post('/matriculas', [
+        $response = $this->post('/matriculas', [
             'codigo' => 'MAT-ACA-001',
             'id_alumno' => $alumno->id_alumno,
             'id_periodo' => $periodo->id_periodo,

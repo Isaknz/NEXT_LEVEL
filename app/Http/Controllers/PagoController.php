@@ -132,7 +132,7 @@ class PagoController extends Controller
                     'id_pago' => $pago->id_pago,
                     'fecha_movimiento' => now(),
                     'monto' => $datos['monto_total'],
-                    'descripcion' => "Pago {$pago->codigo} - " . $pago->matricula->alumno->nombres . ' ' . $pago->matricula->alumno->apellidos,
+                    'descripcion' => "Pago {$pago->codigo} - " . ($pago->matricula->alumno?->nombres ?? 'N/A') . ' ' . ($pago->matricula->alumno?->apellidos ?? ''),
                     'estado' => 'ACTIVO',
                     'registrado_por' => auth()->id(),
                 ]);
@@ -145,9 +145,11 @@ class PagoController extends Controller
                     'fecha_emision' => now(),
                 ]);
 
-                if ($pago->monto_total >= $pago->matricula->monto_total) {
-                    $pago->matricula->update(['estado' => 'PAGADA']);
-                }
+$totalCuentas = $pago->matricula->cuentasPorCobrar()->whereIn('estado', ['PENDIENTE', 'PARCIAL'])->get()->sum('monto_total');
+
+                    if ($pago->monto_total >= $totalCuentas) {
+                        $pago->matricula->update(['estado' => 'PAGADA']);
+                    }
             });
         } catch (\Throwable $e) {
             Log::error('Error al registrar pago', [
@@ -193,7 +195,7 @@ class PagoController extends Controller
 
     public function comprobante($id)
     {
-        $pago = Pago::with(['alumno.matricula.nivel', 'alumno.apoderado', 'pagoDetalles.concepto'])->findOrFail($id);
+        $pago = Pago::with(['matricula.alumno', 'matricula.nivel', 'matricula.alumno.apoderado', 'pagoDetalles.cuentaPorCobrar.concepto'])->findOrFail($id);
         $pdf = PDF::loadView('pagos.comprobante', compact('pago'));
         return $pdf->stream('comprobante-pago-' . $pago->codigo . '.pdf');
     }
@@ -266,7 +268,7 @@ try {
             return abort(403, 'No puedes anular pagos');
         }
         if (auth()->user()->role === 'cajero') {
-            return abort(403, 'Sin permisos');
+            return back()->withErrors(['error' => 'Sin permisos para eliminar pagos']);
         }
         return back()->withErrors(['error' => 'Para eliminar un pago, primero debe anularlo.']);
     }

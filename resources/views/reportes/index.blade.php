@@ -67,9 +67,9 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse(\App\Models\Pago::with('alumno')->limit(10)->get() as $pago)
+                    @forelse(\App\Models\Pago::with('matricula.alumno')->limit(10)->get() as $pago)
                         <tr class="border-b border-gray-100 hover:bg-gray-50">
-                            <td class="py-2 px-3">{{ $pago->alumno->nombre ?? 'N/A' }}</td>
+                            <td class="py-2 px-3">{{ $pago->matricula->alumno->nombre_completo ?? 'N/A' }}</td>
                             <td class="py-2 px-3">{{ $pago->metodo_pago }}</td>
                             <td class="py-2 px-3 text-right">S/. {{ number_format($pago->monto_total, 2) }}</td>
                             <td class="py-2 px-3 text-center">

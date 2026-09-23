@@ -18,6 +18,7 @@ class AuthTest extends TestCase
 
     public function test_login_success(): void
     {
+        $this->withoutMiddleware('throttle:login');
         $user = User::factory()->create([
             'password' => Hash::make('password'),
         ]);
@@ -33,6 +34,7 @@ class AuthTest extends TestCase
 
     public function test_login_fails_with_wrong_password(): void
     {
+        $this->withoutMiddleware('throttle:login');
         $user = User::factory()->create([
             'password' => Hash::make('password'),
         ]);
@@ -58,6 +60,7 @@ class AuthTest extends TestCase
 
     public function test_password_change_flow(): void
     {
+        $this->withoutMiddleware('throttle:login');
         $user = User::factory()->create([
             'password' => Hash::make('temporal123'),
             'password_changed_at' => null,
@@ -86,6 +89,7 @@ class AuthTest extends TestCase
 
     public function test_inactive_users_cannot_authenticate(): void
     {
+        $this->withoutMiddleware('throttle:login');
         $user = User::factory()->create([
             'estado' => 'inactivo',
             'password' => Hash::make('password'),

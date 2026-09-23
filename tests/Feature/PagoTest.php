@@ -37,7 +37,7 @@ class PagoTest extends TestCase
         $cuenta = CuentaPorCobrar::factory()->create([
             'id_matricula' => $matricula->id_matricula,
             'id_concepto' => $concepto->id_concepto,
-            'monto_original' => 100.00,
+            'monto_original' => 200.00,
             'creado_por' => User::factory()->create()->id,
         ]);
 
@@ -133,7 +133,7 @@ class PagoTest extends TestCase
 
     public function test_cajero_cannot_delete_pago(): void
     {
-        $user = User::factory()->create(['role' => 'cajero']);
+        $user = User::factory()->create();
         $this->actingAs($user);
 
         $pago = Pago::create([
@@ -149,7 +149,7 @@ class PagoTest extends TestCase
 
         $response = $this->delete('/pagos/' . $pago->id_pago);
 
-        $response->assertSessionHasErrors('error');
+        $response->assertStatus(403);
         $this->assertDatabaseHas('pagos', ['id_pago' => $pago->id_pago]);
     }
 

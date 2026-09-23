@@ -25,10 +25,10 @@
         </div>
     </div>
     <div class="info-grid">
-        <div><strong>Alumno:</strong> {{ $pago->alumno->nombre_completo }}</div>
-        <div><strong>Apoderado:</strong> {{ $pago->alumno->apoderado->nombre_completo ?? 'N/A' }}</div>
+        <div><strong>Alumno:</strong> {{ $pago->matricula->alumno->nombre_completo }}</div>
+        <div><strong>Apoderado:</strong> {{ $pago->matricula->alumno->apoderado->nombre_completo ?? 'N/A' }}</div>
         <div><strong>Matrícula:</strong> {{ $pago->matricula->codigo }}</div>
-        <div><strong>Concepto:</strong> {{ $pago->pagoDetalles->first()?->concepto->nombre ?? 'N/A' }}</div>
+        <div><strong>Concepto:</strong> {{ $pago->pagoDetalles->first()?->cuentaPorCobrar->concepto->nombre ?? 'N/A' }}</div>
         <div><strong>Método:</strong> {{ $pago->metodo_pago }}</div>
         <div><strong>Estado:</strong> {{ $pago->estado }}</div>
     </div>
@@ -36,7 +36,7 @@
         <thead><tr><th>Concepto</th><th>Monto</th></tr></thead>
         <tbody>
             @foreach($pago->pagoDetalles as $detalle)
-            <tr><td>{{ $detalle->concepto->nombre }}</td><td>{{ number_format($detalle->monto, 2) }}</td></tr>
+            <tr><td>{{ $detalle->cuentaPorCobrar->concepto->nombre }}</td><td>{{ number_format($detalle->monto, 2) }}</td></tr>
             @endforeach
         </tbody>
     </table>

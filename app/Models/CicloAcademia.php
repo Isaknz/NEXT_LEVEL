@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class CicloAcademia extends Model
 {
+    use HasFactory;
     protected $table = 'ciclos_academia';
     protected $primaryKey = 'id_ciclo';
 

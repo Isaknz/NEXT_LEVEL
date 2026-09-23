@@ -19,6 +19,8 @@ return new class extends Migration
                 $table->string('password');
                 $table->enum('role', ['admin', 'gerente', 'secretaria'])->default('secretaria');
                 $table->enum('estado', ['activo', 'inactivo'])->default('activo');
+                $table->timestamp('last_login')->nullable()->after('estado');
+                $table->timestamp('password_changed_at')->nullable()->after('last_login');
                 $table->rememberToken();
                 $table->timestamps();
 

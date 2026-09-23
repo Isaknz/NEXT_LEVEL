@@ -20,28 +20,26 @@ class DashboardController extends Controller
         $totalIngresos = Pago::where('estado', 'CONFIRMADO')->sum('monto_total');
         $totalEgresos = Gasto::where('estado', 'REGISTRADO')->sum('monto');
 
-        $saldosCajas = Caja::select('id', 'nombre', 'saldo_inicial')
-            ->withCount(['movimientos as total_movimientos'])
-            ->get()
-            ->map(function ($caja) {
-                $latestMovimiento = MovimientoCaja::where('id_caja', $caja->id)
-                    ->orderBy('fecha_movimiento', 'desc')
-                    ->first();
-                $saldo = $caja->saldo_inicial;
-                if ($latestMovimiento) {
-                    $movimientos = MovimientoCaja::where('id_caja', $caja->id)->get();
-                    $saldo = $movimientos->sum(function ($m) {
-                        return $m->tipo === 'INGRESO' ? $m->monto : -$m->monto;
-                    });
-                    $saldo += $caja->saldo_inicial;
-                }
-                return [
-                    'id' => $caja->id,
-                    'nombre' => $caja->nombre,
-                    'saldo_inicial' => $caja->saldo_inicial,
-                    'saldo_actual' => round($saldo, 2),
-                ];
-            });
+        $saldosCajas = Caja::select('id_caja', 'nombre', 'saldo_inicial')
+                ->withCount(['movimientos as total_movimientos'])
+                ->get()
+                ->map(function ($caja) {
+                $latestMovimiento = MovimientoCaja::where('id_caja', $caja->id_caja)
+                        ->orderBy('fecha_movimiento', 'desc')
+                        ->first();
+                    $saldo = $caja->saldo_inicial;
+                    if ($latestMovimiento) {
+                        $movimientos = MovimientoCaja::where('id_caja', $caja->id_caja)
+                            ->where('estado', 'ACTIVO')
+                            ->get();
+                        $saldo = $movimientos->sum(function ($m) {
+                            return $m->tipo === 'INGRESO' ? $m->monto : -$m->monto;
+                        });
+                        $saldo += $caja->saldo_inicial;
+                    }
+                    $caja->saldo_actual = round($saldo, 2);
+                    return $caja;
+                });
 
         $totalDeudores = Alumno::whereHas('matriculas', function ($q) {
             $q->whereHas('cuentasPorCobrar', function ($cq) {
@@ -59,21 +57,17 @@ class DashboardController extends Controller
             ->get();
 
         $ingresosMensuales = Pago::where('estado', 'CONFIRMADO')
-            ->select(DB::raw('MONTH(fecha_pago) as mes, sum(monto_total) as total'))
             ->whereYear('fecha_pago', now()->year)
-            ->groupBy('mes')
-            ->orderBy('mes')
-            ->get()
-            ->keyBy('mes')
+            ->get(['fecha_pago', 'monto_total'])
+            ->groupBy(fn ($pago) => $pago->fecha_pago->month)
+            ->map(fn ($pagos) => ['total' => $pagos->sum('monto_total')])
             ->toArray();
 
         $egresosMensuales = Gasto::where('estado', 'REGISTRADO')
-            ->select(DB::raw('MONTH(fecha_gasto) as mes, sum(monto) as total'))
             ->whereYear('fecha_gasto', now()->year)
-            ->groupBy('mes')
-            ->orderBy('mes')
-            ->get()
-            ->keyBy('mes')
+            ->get(['fecha_gasto', 'monto'])
+            ->groupBy(fn ($gasto) => $gasto->fecha_gasto->month)
+            ->map(fn ($gastos) => ['total' => $gastos->sum('monto')])
             ->toArray();
 
         $data = [
