@@ -7,10 +7,13 @@ use Maatwebsite\Excel\Concerns\WithHeadings;
 
 class ReportesExport implements FromCollection, WithHeadings
 {
-    protected $data;
+    protected array $encabezados;
 
-    public function __construct($data)
+    protected array $data;
+
+    public function __construct(array $encabezados, array $data)
     {
+        $this->encabezados = $encabezados;
         $this->data = $data;
     }
 
@@ -19,8 +22,8 @@ class ReportesExport implements FromCollection, WithHeadings
         return collect($this->data);
     }
 
-    public function headings()
+    public function headings(): array
     {
-        return ['Campo1', 'Campo2'];
+        return $this->encabezados;
     }
 }

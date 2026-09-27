@@ -2,36 +2,69 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ConceptoCobroRequest;
 use App\Models\ConceptoCobro;
-use Illuminate\Http\Request;
+use App\Traits\RegistraMovimientos;
+use Illuminate\Support\Facades\DB;
 
 class ConceptoCobroController extends Controller
 {
-    public function index() { return view('conceptos.index'); }
-    public function create() {
-        if (auth()->user()->role === 'cajero') {
-            return abort(403, 'Sin permisos');
-        }
+    use RegistraMovimientos;
+
+    public function index()
+    {
+        $conceptos = ConceptoCobro::withCount('cuentasPorCobrar')
+            ->orderBy('codigo')
+            ->paginate(15);
+
+        return view('conceptos.index', compact('conceptos'));
+    }
+
+    public function create()
+    {
         return view('conceptos.create');
     }
-    public function store(Request $request) { return redirect()->back(); }
-    public function show(ConceptoCobro $concepto) { return view('conceptos.show', compact('concepto')); }
-    public function edit(ConceptoCobro $concepto) {
-        if (auth()->user()->role === 'cajero') {
-            return abort(403, 'Sin permisos');
-        }
+
+    public function store(ConceptoCobroRequest $request)
+    {
+        $concepto = ConceptoCobro::create($request->validated());
+
+        $this->registrarMovimiento('CREAR', 'conceptos', 'Concepto', $concepto->id_concepto, "Concepto creado: {$concepto->nombre}", null, $concepto->only(['codigo', 'nombre', 'tipo', 'modalidad_aplicable', 'monto_referencial', 'estado']));
+
+        return redirect()->route('conceptos.index')->with('success', 'Concepto creado correctamente.');
+    }
+
+    public function edit(ConceptoCobro $concepto)
+    {
         return view('conceptos.edit', compact('concepto'));
     }
-    public function update(Request $request, ConceptoCobro $concepto) {
-        if (auth()->user()->role === 'cajero') {
-            return abort(403, 'Sin permisos');
-        }
-        return redirect()->back();
+
+    public function update(ConceptoCobroRequest $request, ConceptoCobro $concepto)
+    {
+        $anteriores = $concepto->only(['codigo', 'nombre', 'tipo', 'modalidad_aplicable', 'monto_referencial', 'estado']);
+
+        $concepto->update($request->validated());
+
+        $this->registrarMovimiento('ACTUALIZAR', 'conceptos', 'Concepto', $concepto->id_concepto, "Concepto actualizado: {$concepto->nombre}", $anteriores, $concepto->only(['codigo', 'nombre', 'tipo', 'modalidad_aplicable', 'monto_referencial', 'estado']));
+
+        return redirect()->route('conceptos.index')->with('success', 'Concepto actualizado correctamente.');
     }
-    public function destroy(ConceptoCobro $concepto) {
-        if (auth()->user()->role === 'cajero') {
-            return abort(403, 'Sin permisos');
+
+    public function destroy(ConceptoCobro $concepto)
+    {
+        $cuentas = $concepto->cuentasPorCobrar()->count();
+
+        if ($cuentas > 0) {
+            return back()->with('error', "No se puede eliminar el concepto \"{$concepto->nombre}\": tiene {$cuentas} cuenta(s) por cobrar asociada(s). Desactívelo en su lugar.");
         }
-        return redirect()->back();
+
+        $nombre = $concepto->nombre;
+        $id = $concepto->id_concepto;
+
+        DB::transaction(fn () => $concepto->delete());
+
+        $this->registrarMovimiento('ELIMINAR', 'conceptos', 'Concepto', $id, "Concepto eliminado: {$nombre}");
+
+        return redirect()->route('conceptos.index')->with('success', 'Concepto eliminado correctamente.');
     }
 }

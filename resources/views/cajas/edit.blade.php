@@ -5,34 +5,18 @@
     <li class="breadcrumb-separator">Editar</li>
 @endsection
 @section('content')
-<div class="max-w-2xl">
-    <h2 class="text-2xl font-bold text-gray-800 mb-6">Editar Caja</h2>
-    <form method="POST" action="{{ route('cajas.update', $caja) }}" class="space-y-4">
-        @csrf
-        @if($method === 'PUT') @method('PUT') @endif
-        <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-1">Código</label>
-            <input type="text" name="codigo" value="{{ old('codigo', $caja->codigo ?? '') }}" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
-            @error('codigo')<p class="text-red-500 text-sm mt-1">{{ $message }}</p>@enderror
-        </div>
-        <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-1">Nombre</label>
-            <input type="text" name="nombre" value="{{ old('nombre', $caja->nombre ?? '') }}" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
-            @error('nombre')<p class="text-red-500 text-sm mt-1">{{ $message }}</p>@enderror
-        </div>
-        <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-1">Tipo</label>
-            <input type="text" name="tipo" value="{{ old('tipo', $caja->tipo ?? '') }}" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
-            @error('tipo')<p class="text-red-500 text-sm mt-1">{{ $message }}</p>@enderror
-        </div>
-        <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-1">Estado</label>
-            <input type="text" name="estado" value="{{ old('estado', $caja->estado ?? '') }}" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
-            @error('estado')<p class="text-red-500 text-sm mt-1">{{ $message }}</p>@enderror
-        </div>
-        <button type="submit" class="btn-primary rounded-lg px-4 py-2 font-semibold text-white">
-            <i class="fas fa-save"></i> Guardar
-        </button>
-    </form>
+<div class="max-w-3xl">
+    <div class="mb-6">
+        <h2 class="text-2xl font-bold text-gray-800">
+            <i class="fas fa-cash-register mr-2 text-blue-600"></i>Editar Caja
+        </h2>
+        <p class="text-gray-500 text-sm mt-1">
+            {{ $caja->codigo }} · {{ $caja->movimientos_count }} movimiento(s) · {{ $caja->pagos_count }} pago(s) · {{ $caja->gastos_count }} gasto(s)
+        </p>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-md p-6">
+        @include('cajas._form', ['caja' => $caja])
+    </div>
 </div>
 @endsection

@@ -10,9 +10,15 @@
         </h2>
         <p class="text-gray-500 text-sm mt-1">Total: {{ $users->total() }} usuarios registrados</p>
     </div>
+    @if(auth()->user()->puedeAcceder('users.create'))
     <a href="{{ route('users.create') }}" class="btn-primary text-white px-4 py-2 rounded-lg text-sm shadow">
         <i class="fas fa-plus mr-1"></i> Nuevo Usuario
     </a>
+    @else
+    <p class="text-sm text-gray-500 bg-gray-100 px-3 py-2 rounded-lg">
+        <i class="fas fa-eye mr-1"></i> Solo consulta: la gestión de cuentas es del administrador
+    </p>
+    @endif
 </div>
 
 <!-- Filtros -->
@@ -124,11 +130,13 @@
                                class="bg-blue-100 hover:bg-blue-200 text-blue-700 p-2 rounded-lg transition" title="Ver">
                                 <i class="fas fa-eye"></i>
                             </a>
+                            @if(auth()->user()->puedeAcceder('users.edit'))
                             <a href="{{ route('users.edit', $user->id) }}"
                                class="bg-yellow-100 hover:bg-yellow-200 text-yellow-700 p-2 rounded-lg transition" title="Editar">
                                 <i class="fas fa-edit"></i>
                             </a>
-                            @if($user->id !== auth()->id())
+                            @endif
+                            @if(auth()->user()->puedeAcceder('users.destroy') && $user->id !== auth()->id())
                             <form action="{{ route('users.destroy', $user->id) }}" method="POST" 
                                   x-data="{ confirmDelete: false }" class="inline">
                                 @csrf

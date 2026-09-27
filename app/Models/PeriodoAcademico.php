@@ -21,8 +21,20 @@ class PeriodoAcademico extends Model
         'estado',
     ];
 
+    protected $casts = [
+        'anio' => 'integer',
+        'fecha_inicio' => 'date',
+        'fecha_fin' => 'date',
+        'estado' => 'string',
+    ];
+
     public function matriculas()
     {
         return $this->hasMany(Matricula::class, 'id_periodo', 'id_periodo');
+    }
+
+    public function ciclos()
+    {
+        return $this->hasMany(CicloAcademia::class, 'id_periodo', 'id_periodo');
     }
 }

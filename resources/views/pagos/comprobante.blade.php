@@ -28,14 +28,14 @@
         <div><strong>Alumno:</strong> {{ $pago->matricula->alumno->nombre_completo }}</div>
         <div><strong>Apoderado:</strong> {{ $pago->matricula->alumno->apoderado->nombre_completo ?? 'N/A' }}</div>
         <div><strong>Matrícula:</strong> {{ $pago->matricula->codigo }}</div>
-        <div><strong>Concepto:</strong> {{ $pago->pagoDetalles->first()?->cuentaPorCobrar->concepto->nombre ?? 'N/A' }}</div>
+        <div><strong>Concepto:</strong> {{ $pago->detalles->first()?->cuentaPorCobrar->concepto->nombre ?? 'N/A' }}</div>
         <div><strong>Método:</strong> {{ $pago->metodo_pago }}</div>
         <div><strong>Estado:</strong> {{ $pago->estado }}</div>
     </div>
     <table>
         <thead><tr><th>Concepto</th><th>Monto</th></tr></thead>
         <tbody>
-            @foreach($pago->pagoDetalles as $detalle)
+            @foreach($pago->detalles as $detalle)
             <tr><td>{{ $detalle->cuentaPorCobrar->concepto->nombre }}</td><td>{{ number_format($detalle->monto, 2) }}</td></tr>
             @endforeach
         </tbody>

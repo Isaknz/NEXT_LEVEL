@@ -5,53 +5,30 @@
     <li class="breadcrumb-separator">Crear</li>
 @endsection
 @section('content')
-<div class="max-w-2xl">
-    <h2 class="text-2xl font-bold text-gray-800 mb-6">Crear Ciclo</h2>
-    <form method="POST" action="{{ route('ciclos.store') }}" class="space-y-4">
-        @csrf
-        <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-1">Período</label>
-            <input type="text" name="periodo" value="{{ old('periodo', $ciclo->periodo ?? '') }}" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
-            @error('periodo')<p class="text-red-500 text-sm mt-1">{{ $message }}</p>@enderror
-        </div>
-        <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-1">Facultad</label>
-            <input type="text" name="facultad" value="{{ old('facultad', $ciclo->facultad ?? '') }}" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
-            @error('facultad')<p class="text-red-500 text-sm mt-1">{{ $message }}</p>@enderror
-        </div>
-        <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-1">Nombre</label>
-            <input type="text" name="nombre" value="{{ old('nombre', $ciclo->nombre ?? '') }}" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
-            @error('nombre')<p class="text-red-500 text-sm mt-1">{{ $message }}</p>@enderror
-        </div>
-        <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-1">Fecha de Inicio</label>
-            <input type="date" name="fecha_inicio" value="{{ old('fecha_inicio', $ciclo->fecha_inicio ?? '') }}" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
-            @error('fecha_inicio')<p class="text-red-500 text-sm mt-1">{{ $message }}</p>@enderror
-        </div>
-        <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-1">Fecha de Fin</label>
-            <input type="date" name="fecha_fin" value="{{ old('fecha_fin', $ciclo->fecha_fin ?? '') }}" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
-            @error('fecha_fin')<p class="text-red-500 text-sm mt-1">{{ $message }}</p>@enderror
-        </div>
-        <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-1">Horario</label>
-            <input type="text" name="horario" value="{{ old('horario', $ciclo->horario ?? '') }}" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-            @error('horario')<p class="text-red-500 text-sm mt-1">{{ $message }}</p>@enderror
-        </div>
-        <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-1">Capacidad</label>
-            <input type="text" name="capacidad" value="{{ old('capacidad', $ciclo->capacidad ?? '') }}" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-            @error('capacidad')<p class="text-red-500 text-sm mt-1">{{ $message }}</p>@enderror
-        </div>
-        <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-1">Estado</label>
-            <input type="text" name="estado" value="{{ old('estado', $ciclo->estado ?? '') }}" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
-            @error('estado')<p class="text-red-500 text-sm mt-1">{{ $message }}</p>@enderror
-        </div>
-        <button type="submit" class="btn-primary rounded-lg px-4 py-2 font-semibold text-white">
-            <i class="fas fa-save"></i> Guardar
-        </button>
-    </form>
+<div class="max-w-3xl">
+    <div class="mb-6">
+        <h2 class="text-2xl font-bold text-gray-800">
+            <i class="fas fa-book-open mr-2 text-blue-600"></i>Crear Ciclo Académico
+        </h2>
+        <p class="text-gray-500 text-sm mt-1">El nombre y turno deben ser únicos para cada combinación de período y facultad.</p>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-md p-6">
+        @if($periodos->isEmpty() || $facultades->isEmpty())
+            <div class="bg-yellow-50 border border-yellow-300 rounded-lg p-4 mb-5 text-sm text-yellow-800">
+                <i class="fas fa-exclamation-triangle mr-1"></i>
+                @if($periodos->isEmpty())
+                    No hay períodos disponibles.
+                    <a href="{{ route('periodos.create') }}" class="font-semibold underline">Crea un período</a>.
+                @endif
+                @if($facultades->isEmpty())
+                    No hay facultades activas.
+                    <a href="{{ route('facultades.create') }}" class="font-semibold underline">Crea una facultad</a>.
+                @endif
+            </div>
+        @endif
+
+        @include('ciclos._form', ['ciclo' => null])
+    </div>
 </div>
 @endsection

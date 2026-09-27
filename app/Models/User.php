@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Permisos;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -52,6 +53,23 @@ class User extends Authenticatable
     public function isCajero()
     {
         return $this->role === 'cajero';
+    }
+
+    /**
+     * Indica si el usuario puede acceder a la ruta indicada.
+     * El menú lateral lo usa para no mostrar enlaces que darían 403.
+     */
+    public function puedeAcceder(?string $routeName): bool
+    {
+        return Permisos::permite($this->role, $routeName);
+    }
+
+    /**
+     * Indica si el usuario puede ver el módulo indicado (ruta índice).
+     */
+    public function puedeVerModulo(string $modulo): bool
+    {
+        return $this->puedeAcceder($modulo . '.index');
     }
 
     public function scopeFiltrar(Builder $query, Request $request): Builder

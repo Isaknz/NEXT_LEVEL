@@ -130,7 +130,13 @@
                     <option value="RETIRADA" {{ old('estado', $matricula->estado) === 'RETIRADA' ? 'selected' : '' }}>Retirada</option>
                     <option value="ANULADA" {{ old('estado', $matricula->estado) === 'ANULADA' ? 'selected' : '' }}>Anulada</option>
                     <option value="FINALIZADA" {{ old('estado', $matricula->estado) === 'FINALIZADA' ? 'selected' : '' }}>Finalizada</option>
+                    {{-- PAGADA la calcula el sistema al liquidar la deuda; sin esta
+                         opción el navegador seleccionaba "Pendiente" y se perdía. --}}
+                    <option value="PAGADA" {{ old('estado', $matricula->estado) === 'PAGADA' ? 'selected' : '' }}>Pagada (automático)</option>
                 </select>
+                @if ($matricula->estado === 'PAGADA')
+                    <p class="mt-1 text-xs text-gray-500">El estado Pagada se asigna automáticamente cuando la matrícula queda sin saldo pendiente.</p>
+                @endif
             </div>
 
             <!-- Observaciones -->

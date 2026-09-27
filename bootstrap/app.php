@@ -14,6 +14,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'check.role' => \App\Http\Middleware\CheckRole::class,
             'role.permission' => \App\Http\Middleware\RolePermissionMiddleware::class,
+            'clave.temporal' => \App\Http\Middleware\DebeCambiarClave::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

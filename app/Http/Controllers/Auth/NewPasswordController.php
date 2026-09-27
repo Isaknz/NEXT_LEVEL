@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Traits\RegistraMovimientos;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -16,6 +17,8 @@ use Illuminate\View\View;
 
 class NewPasswordController extends Controller
 {
+    use RegistraMovimientos;
+
     /**
      * Display the password reset view.
      */
@@ -46,7 +49,19 @@ class NewPasswordController extends Controller
                 $user->forceFill([
                     'password' => Hash::make($request->password),
                     'remember_token' => Str::random(60),
+                    // El usuario acaba de ELEGIR esta clave, asi que ya no es
+                    // temporal. Sin esto, DebeCambiarClave lo devolveria a
+                    // cambiar la clave que acaba de establecer.
+                    'password_changed_at' => now(),
                 ])->save();
+
+                self::registrarMovimiento(
+                    'RESTABLECER_CLAVE',
+                    'Autenticación',
+                    'User',
+                    $user->id,
+                    "El usuario {$user->nombre} restableció su contraseña mediante enlace por correo"
+                );
 
                 event(new PasswordReset($user));
             }

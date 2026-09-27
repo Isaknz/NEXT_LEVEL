@@ -2,56 +2,80 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\GradoRequest;
 use App\Models\Grado;
-use Illuminate\Http\Request;
+use App\Models\Nivel;
+use App\Traits\RegistraMovimientos;
+use Illuminate\Support\Facades\DB;
 
 class GradoController extends Controller
 {
-    public function index() { return view('grados.index'); }
-    public function create() {
-        if (auth()->user()->role === 'cajero') {
-            return abort(403, 'Sin permisos');
-        }
-        return view('grados.create');
+    use RegistraMovimientos;
+
+    public function index()
+    {
+        $grados = Grado::with('nivel')
+            ->withCount(['alumnos', 'matriculas'])
+            ->orderBy('id_nivel')
+            ->orderBy('orden')
+            ->paginate(15);
+
+        return view('grados.index', compact('grados'));
     }
-    public function store(Request $request) {
-        if (auth()->user()->role === 'cajero') {
-            return abort(403, 'Sin permisos');
-        }
-        $validated = $request->validate([
-            'id_nivel' => 'required|exists:niveles,id_nivel',
-            'nombre' => 'required|string|max:30',
-            'orden' => 'required|integer',
-            'estado' => 'required|string|max:10',
-        ]);
-        Grado::create($validated);
-        return redirect()->route('grados.index')->with('success', 'Grado creado');
+
+    public function create()
+    {
+        $niveles = Nivel::where('estado', 'ACTIVO')->orderBy('nombre')->get();
+
+        return view('grados.create', compact('niveles'));
     }
-    public function show(Grado $grado) { return view('grados.show', compact('grado')); }
-    public function edit(Grado $grado) {
-        if (auth()->user()->role === 'cajero') {
-            return abort(403, 'Sin permisos');
-        }
-        return view('grados.edit', compact('grado'));
+
+    public function store(GradoRequest $request)
+    {
+        $grado = Grado::create($request->validated());
+
+        $this->registrarMovimiento('CREAR', 'grados', 'Grado', $grado->id_grado, "Grado creado: {$grado->nombre}", null, $grado->only(['id_nivel', 'nombre', 'orden', 'estado']));
+
+        return redirect()->route('grados.index')->with('success', 'Grado creado correctamente.');
     }
-    public function update(Request $request, Grado $grado) {
-        if (auth()->user()->role === 'cajero') {
-            return abort(403, 'Sin permisos');
-        }
-        $validated = $request->validate([
-            'id_nivel' => 'required|exists:niveles,id_nivel',
-            'nombre' => 'required|string|max:30',
-            'orden' => 'required|integer',
-            'estado' => 'required|string|max:10',
-        ]);
-        $grado->update($validated);
-        return redirect()->route('grados.index')->with('success', 'Grado actualizado');
+
+    public function edit(Grado $grado)
+    {
+        $niveles = Nivel::where('estado', 'ACTIVO')
+            ->orWhere('id_nivel', $grado->id_nivel)
+            ->orderBy('nombre')
+            ->get();
+
+        return view('grados.edit', compact('grado', 'niveles'));
     }
-    public function destroy(Grado $grado) {
-        if (auth()->user()->role === 'cajero') {
-            return abort(403, 'Sin permisos');
+
+    public function update(GradoRequest $request, Grado $grado)
+    {
+        $anteriores = $grado->only(['id_nivel', 'nombre', 'orden', 'estado']);
+
+        $grado->update($request->validated());
+
+        $this->registrarMovimiento('ACTUALIZAR', 'grados', 'Grado', $grado->id_grado, "Grado actualizado: {$grado->nombre}", $anteriores, $grado->only(['id_nivel', 'nombre', 'orden', 'estado']));
+
+        return redirect()->route('grados.index')->with('success', 'Grado actualizado correctamente.');
+    }
+
+    public function destroy(Grado $grado)
+    {
+        $alumnos = $grado->alumnos()->count();
+        $matriculas = $grado->matriculas()->count();
+
+        if ($alumnos > 0 || $matriculas > 0) {
+            return back()->with('error', "No se puede eliminar el grado \"{$grado->nombre}\": tiene {$alumnos} alumno(s) y {$matriculas} matrícula(s) asociadas. Desactívelo en su lugar.");
         }
-        Grado::destroy($grado->id_grado);
-        return redirect()->route('grados.index')->with('success', 'Grado eliminado');
+
+        $nombre = $grado->nombre;
+        $id = $grado->id_grado;
+
+        DB::transaction(fn () => $grado->delete());
+
+        $this->registrarMovimiento('ELIMINAR', 'grados', 'Grado', $id, "Grado eliminado: {$nombre}");
+
+        return redirect()->route('grados.index')->with('success', 'Grado eliminado correctamente.');
     }
 }

@@ -15,7 +15,23 @@ return new class extends Migration
         Schema::create('registro_movimientos', function (Blueprint $table) {
             $table->id('id_registro');
             $table->unsignedBigInteger('user_id')->nullable();
-            $table->enum('accion', ['CREAR', 'ACTUALIZAR', 'ANULAR', 'ELIMINAR', 'VER', 'EXPORTAR', 'IMPRIMIR', 'INICIAR_SESION', 'CERRAR_SESION']);
+            // La lista debe coincidir con
+            // App\Traits\RegistraMovimientos::ACCIONES_AUDITABLES.
+            //
+            // SQLite convierte enum() en un CHECK, a diferencia de MySQL donde
+            // el enum es válido aunque valor no figure en la definición. Por eso
+            // esta migración declara la lista COMPLETA desde el inicio: si una
+            // instalación nueva se creara solo con los valores antiguos, los
+            // INSERT de auditoría de caja y de restablecimiento de clave
+            // fallarían en los tests SQLite.
+            //
+            // Las migraciones 2026_09_26_000001 y 2026_09_26_000002 se encargan
+            // de alargar el enum de las bases MySQL que ya existían.
+            $table->enum('accion', [
+                'CREAR', 'ACTUALIZAR', 'ANULAR', 'ELIMINAR', 'VER', 'EXPORTAR', 'IMPRIMIR',
+                'INICIAR_SESION', 'CERRAR_SESION', 'CERRAR_CAJA', 'REABRIR_CAJA', 'AJUSTE_CAJA',
+                'SOLICITAR_RESET', 'RESTABLECER_CLAVE',
+            ]);
             $table->string('modulo', 80);
             $table->string('entidad', 80)->nullable();
             $table->unsignedBigInteger('entidad_id')->nullable();

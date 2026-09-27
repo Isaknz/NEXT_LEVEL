@@ -40,6 +40,7 @@
                                     'RETIRADA' => 'red',
                                     'ANULADA' => 'gray',
                                     'FINALIZADA' => 'blue',
+                                    'PAGADA' => 'emerald',
                                     default => 'gray',
                                 };
                             @endphp

@@ -47,7 +47,7 @@ class AuditoriaController extends Controller
         // Para los filtros
         $usuarios = User::orderBy('nombre')->get();
         $modulos = RegistroMovimiento::distinct()->pluck('modulo')->filter();
-        $acciones = ['CREAR', 'ACTUALIZAR', 'ELIMINAR', 'ANULAR', 'VER', 'EXPORTAR', 'IMPRIMIR', 'INICIAR_SESION'];
+        $acciones = ['CREAR', 'ACTUALIZAR', 'ELIMINAR', 'ANULAR', 'VER', 'EXPORTAR', 'IMPRIMIR', 'INICIAR_SESION', 'CERRAR_SESION'];
 
         // Estadísticas
         $stats = [

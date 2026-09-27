@@ -145,11 +145,14 @@ class PagoController extends Controller
                     'fecha_emision' => now(),
                 ]);
 
-$totalCuentas = $pago->matricula->cuentasPorCobrar()->whereIn('estado', ['PENDIENTE', 'PARCIAL'])->get()->sum('monto_total');
+                // La matricula queda PAGADA cuando no quedan cuentas pendientes ni parciales.
+                $quedanSaldo = $pago->matricula->cuentasPorCobrar()
+                    ->whereIn('estado', ['PENDIENTE', 'PARCIAL'])
+                    ->exists();
 
-                    if ($pago->monto_total >= $totalCuentas) {
-                        $pago->matricula->update(['estado' => 'PAGADA']);
-                    }
+                if (! $quedanSaldo) {
+                    $pago->matricula->update(['estado' => 'PAGADA']);
+                }
             });
         } catch (\Throwable $e) {
             Log::error('Error al registrar pago', [
@@ -193,9 +196,9 @@ $totalCuentas = $pago->matricula->cuentasPorCobrar()->whereIn('estado', ['PENDIE
         return view('pagos.show', compact('pago'));
     }
 
-    public function comprobante($id)
+    public function comprobante(Pago $pago)
     {
-        $pago = Pago::with(['matricula.alumno', 'matricula.nivel', 'matricula.alumno.apoderado', 'pagoDetalles.cuentaPorCobrar.concepto'])->findOrFail($id);
+        $pago->load(['matricula.alumno', 'matricula.nivel', 'matricula.alumno.apoderado', 'detalles.cuentaPorCobrar.concepto']);
         $pdf = PDF::loadView('pagos.comprobante', compact('pago'));
         return $pdf->stream('comprobante-pago-' . $pago->codigo . '.pdf');
     }
@@ -217,7 +220,7 @@ $totalCuentas = $pago->matricula->cuentasPorCobrar()->whereIn('estado', ['PENDIE
             return back()->withErrors(['error' => 'Este pago ya está anulado.']);
         }
 
-try {
+        try {
             DB::transaction(function () use ($request, $pago) {
                 $pago->estado = 'ANULADO';
                 $pago->anulado_por = auth()->id();

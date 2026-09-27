@@ -94,21 +94,17 @@
                             </svg>
                         </template>
                         <template x-if="!loading">
-                            <i class="fas fa-arrow-right"></i>Ingresar al sistema
+                            <i class="fas fa-arrow-right">Ingresar al sistema</i>
                         </template>
                     </button>
                 </form>
 
-                <div class="mt-6 text-center">
-                    <p class="text-sm text-gray-500">
-                        ¿No tienes cuenta?
-                        <a href="{{ route('register') }}" class="text-blue-700 font-semibold hover:text-blue-900">Regístrate</a>
-                    </p>
-                </div>
-
                 <div class="mt-8 border-t border-gray-100 pt-5 text-center text-xs text-gray-500">
                     <i class="fas fa-shield-halved mr-1"></i>Acceso seguro para personal autorizado
                 </div>
+                <p class="mt-2 text-center text-xs text-gray-400">
+                    ¿No tienes cuenta? Solicítala al administrador del sistema.
+                </p>
             </section>
         </div>
     </div>

@@ -9,6 +9,9 @@ use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use App\Models\Grado;
 use App\Models\Nivel;
+use App\Models\Pago;
+use App\Models\Caja;
+use App\Models\Matricula;
 
 class AlumnoTest extends TestCase
 {
@@ -95,15 +98,25 @@ class AlumnoTest extends TestCase
 
     public function test_secretaria_cannot_annul_pago(): void
     {
-        $this->markTestIncomplete('Implementación de prueba de permiso de secretaria para anular pagos');
-
         $user = User::factory()->create(['role' => 'secretaria']);
         $this->actingAs($user);
 
-        $response = $this->post('/pagos/1/anular', [
+        $pago = Pago::create([
+            'codigo' => 'PAG-SEC-001',
+            'id_matricula' => Matricula::factory()->create()->id_matricula,
+            'id_caja' => Caja::factory()->create()->id_caja,
+            'fecha_pago' => now(),
+            'metodo_pago' => 'EFECTIVO',
+            'monto_total' => 100,
+            'estado' => 'CONFIRMADO',
+            'registrado_por' => $user->id,
+        ]);
+
+        $response = $this->post("/pagos/{$pago->id_pago}/anular", [
             'motivo_anulacion' => 'Test',
         ]);
 
-        $response->assertSessionHasErrors('error');
+        $response->assertForbidden();
+        $this->assertSame('CONFIRMADO', $pago->fresh()->estado, 'El pago no debe anularse.');
     }
 }

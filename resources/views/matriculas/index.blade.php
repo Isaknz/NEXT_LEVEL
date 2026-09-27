@@ -108,7 +108,8 @@
                 <option value="ACTIVA" {{ request('estado') === 'ACTIVA' ? 'selected' : '' }}>Activa</option>
                 <option value="RETIRADA" {{ request('estado') === 'RETIRADA' ? 'selected' : '' }}>Retirada</option>
                 <option value="ANULADA" {{ request('estado') === 'ANULADA' ? 'selected' : '' }}>Anulada</option>
-                <option value="FINALIZADA" {{ request('estado') === 'FINALIZADA' ? 'selected' : '' }}>Finalizada</option>
+                    <option value="FINALIZADA" {{ request('estado') === 'FINALIZADA' ? 'selected' : '' }}>Finalizada</option>
+                    <option value="PAGADA" {{ request('estado') === 'PAGADA' ? 'selected' : '' }}>Pagada</option>
             </select>
         </div>
 
@@ -191,6 +192,7 @@
                                 'RETIRADA' => 'red',
                                 'ANULADA' => 'gray',
                                 'FINALIZADA' => 'blue',
+                                'PAGADA' => 'emerald',
                                 default => 'gray',
                             };
                         @endphp

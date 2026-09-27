@@ -13,11 +13,22 @@ class Nivel extends Model
     protected $primaryKey = 'id_nivel';
 
     protected $fillable = [
+        'codigo',
         'nombre',
+        'estado',
+    ];
+
+    protected $casts = [
+        'estado' => 'string',
     ];
 
     public function grados()
     {
         return $this->hasMany(Grado::class, 'id_nivel', 'id_nivel');
+    }
+
+    public function matriculas()
+    {
+        return $this->hasMany(Matricula::class, 'id_nivel', 'id_nivel');
     }
 }

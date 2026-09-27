@@ -3,7 +3,6 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\ConfirmablePasswordController;
 use App\Http\Controllers\Auth\EmailVerificationNotificationController;
 use App\Http\Controllers\Auth\EmailVerificationPromptController;
@@ -37,16 +36,25 @@ Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->name('login.post')->middleware('throttle:login');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
+// Acceso cerrado: las cuentas las crea el administrador desde el módulo
+// Usuarios. El registro público de Breeze se eliminó porque creaba usuarios
+// con el rol por defecto del enum ('secretaria') sin ningún filtro, es decir,
+// cualquier visitante podía obtener acceso a alumnos, matrículas, pagos,
+// cuentas por cobrar y cajas.
 Route::middleware('guest')->group(function () {
-    Route::get('/register', [RegisteredUserController::class, 'create'])->name('register');
-    Route::post('/register', [RegisteredUserController::class, 'store'])->name('register');
+    // throttle: evita que alguien solicite cientos de enlaces por minuto para
+    // bombardear el correo del personal o agotar los tokens de la tabla.
     Route::get('/forgot-password', [PasswordResetLinkController::class, 'create'])->name('password.request');
-    Route::post('/forgot-password', [PasswordResetLinkController::class, 'store'])->name('password.email');
+    Route::post('/forgot-password', [PasswordResetLinkController::class, 'store'])
+        ->middleware('throttle:6,1')
+        ->name('password.email');
     Route::get('/reset-password/{token}', [NewPasswordController::class, 'create'])->name('password.reset');
-    Route::post('/reset-password', [NewPasswordController::class, 'store'])->name('password.reset.update');
+    Route::post('/reset-password', [NewPasswordController::class, 'store'])
+        ->middleware('throttle:6,1')
+        ->name('password.reset.update');
 });
 
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'clave.temporal'])->group(function () {
     Route::get('/confirm-password', [ConfirmablePasswordController::class, 'show'])->name('password.confirm');
     Route::post('/confirm-password', [ConfirmablePasswordController::class, 'store']);
     Route::post('/verify-email/email', [EmailVerificationNotificationController::class, 'store'])->name('verification.send');
@@ -54,7 +62,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/email/verify', [EmailVerificationPromptController::class, '__invoke'])->name('verification.notice');
 });
 
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'clave.temporal'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     Route::get('/password/change', [AuthController::class, 'showChangePassword'])->name('password.change');
@@ -64,35 +72,47 @@ Route::middleware(['auth'])->group(function () {
         Route::resource('alumnos', AlumnoController::class);
         Route::resource('apoderados', ApoderadoController::class);
         Route::resource('matriculas', MatriculaController::class);
-        Route::resource('pagos', PagoController::class);
+        Route::resource('pagos', PagoController::class)->except(['edit', 'update']);
         Route::post('/pagos/{pago}/anular', [PagoController::class, 'anular'])->name('pagos.anular');
         Route::get('/pagos/{pago}/comprobante', [PagoController::class, 'comprobante'])->name('pagos.comprobante');
         Route::resource('gastos', GastoController::class);
         Route::post('/gastos/{gasto}/anular', [GastoController::class, 'anular'])->name('gastos.anular');
-        Route::resource('cuentas-por-cobrar', CuentaPorCobrarController::class);
+        Route::resource('cuentas-por-cobrar', CuentaPorCobrarController::class)
+        ->parameters(['cuentas-por-cobrar' => 'cuenta'])
+        ->except(['show']);
+    Route::post('/cuentas-por-cobrar/{cuenta}/anular', [CuentaPorCobrarController::class, 'anular'])->name('cuentas-por-cobrar.anular');
         Route::resource('cajas', CajaController::class);
         Route::post('/cajas/{caja}/cerrar', [CajaController::class, 'cerrar'])->name('cajas.cerrar');
         Route::post('/cajas/{caja}/aperturar', [CajaController::class, 'aperturar'])->name('cajas.aperturar');
+        Route::get('/cajas/{caja}/ajuste', [CajaController::class, 'formAjuste'])->name('cajas.ajuste.crear');
         Route::post('/cajas/{caja}/ajuste', [CajaController::class, 'ajuste'])->name('cajas.ajuste');
-        Route::resource('periodos', PeriodoAcademicoController::class);
-        Route::resource('niveles', NivelController::class);
-        Route::resource('grados', GradoController::class);
-        Route::resource('facultades', FacultadController::class);
-        Route::resource('ciclos', CicloAcademiaController::class);
-        Route::resource('conceptos', ConceptoCobroController::class);
-        Route::resource('categorias', CategoriaGastoController::class);
+        Route::resource('periodos', PeriodoAcademicoController::class)->except(['show']);
+        Route::resource('niveles', NivelController::class)
+            ->parameters(['niveles' => 'nivel'])
+            ->except(['show']);
+        Route::resource('grados', GradoController::class)->except(['show']);
+        Route::resource('facultades', FacultadController::class)
+            ->parameters(['facultades' => 'facultad'])
+            ->except(['show']);
+        Route::resource('ciclos', CicloAcademiaController::class)->except(['show']);
+        Route::resource('conceptos', ConceptoCobroController::class)->except(['show']);
+        Route::resource('categorias', CategoriaGastoController::class)->except(['show']);
+        Route::get('/reportes', [ReporteController::class, 'index'])->name('reportes.index');
         Route::get('/reportes/deudores', [ReporteController::class, 'deudores'])->name('reportes.deudores');
         Route::get('/reportes/vencidos', [ReporteController::class, 'vencidos'])->name('reportes.vencidos');
         Route::get('/reportes/export/excel', [ReporteController::class, 'exportExcel'])->name('reportes.export.excel');
         Route::get('/reportes/export', [ReporteController::class, 'exportExcel'])->name('reportes.export');
         Route::get('/reportes/export/pdf', [ReporteController::class, 'exportPdf'])->name('reportes.export.pdf');
-        Route::resource('reportes', ReporteController::class);
     });
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
 
-    Route::middleware(['check.role:admin,gerente'])->group(function () {
+    // role.permission es imprescindible aquí: check.role solo distingue
+    // admin/gerente de los demás, pero la regla que prohíbe al gerente
+    // eliminar usuarios vive en Permisos. Sin este middleware el gerente
+    // entraba por check.role y el DELETE se ejecutaba.
+    Route::middleware(['check.role:admin,gerente', 'role.permission'])->group(function () {
         Route::resource('users', UserController::class);
         Route::get('/auditoria', [AuditoriaController::class, 'index'])->name('auditoria.index');
         Route::get('/auditoria/{movimiento}', [AuditoriaController::class, 'show'])->name('auditoria.show');
