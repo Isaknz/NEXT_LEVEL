@@ -10,7 +10,7 @@
     <p class="text-gray-500 mt-1">Alumnos con pagos pendientes o parciales.</p>
 </div>
 
-<!-- Filter -->
+<!-- Filtro -->
 <div class="bg-white rounded-xl shadow p-6 mb-6">
     <form method="GET" class="flex items-end gap-4">
         <div>

@@ -9,7 +9,7 @@
     <p class="text-gray-500 mt-1">Genera y consulta reportes del sistema.</p>
 </div>
 
-<!-- Export Buttons -->
+<!-- Exportar botones -->
 <div class="flex flex-wrap gap-4 mb-6">
     <a href="{{ route('reportes.export', ['format' => 'csv']) }}" class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
         <i class="fas fa-file-csv mr-2"></i> Exportar CSV
@@ -52,7 +52,7 @@
     </div>
 </div>
 
-<!-- Report Tables -->
+<!-- Reportar Tablas -->
 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
     <div class="bg-white rounded-xl shadow p-6">
         <h3 class="text-lg font-semibold text-gray-800 mb-4">Reporte de Pagos</h3>

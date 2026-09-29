@@ -1,111 +1,147 @@
 <x-guest-layout>
     <div class="login-shell">
         <div class="login-layout">
+
+            {{-- Panel izquierdo: identidad institucional --}}
             <section class="login-brand-panel">
-                <div>
-                    <x-application-logo class="brand-logo" />
-                    <p class="mt-8 text-sm font-semibold uppercase tracking-[0.2em] text-blue-100">Next Level</p>
-                    <h1 class="mt-3 text-3xl font-bold leading-tight">Gestión que impulsa el futuro.</h1>
-                    <p class="mt-4 max-w-sm text-sm leading-6 text-blue-100">Administra matrículas, pagos y gastos desde un solo lugar.</p>
+                <svg class="brand-arrow" viewBox="0 0 200 200" fill="none" aria-hidden="true" focusable="false">
+                    <path d="M20 152 L72 100 L102 130 L172 58" stroke="currentColor" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M132 58 H172 V98" stroke="currentColor" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+
+                <div class="brand-lockup">
+                    <span class="brand-mark">
+                        <x-application-logo class="brand-logo" />
+                    </span>
+                    <div>
+                        <p class="brand-name">Next Level</p>
+                        <p class="brand-name">School</p>
+                        <p class="brand-motto">Educación en el próximo nivel</p>
+                    </div>
                 </div>
-                <p class="mt-8 text-xs text-blue-200">Plataforma administrativa institucional</p>
+
+                <div>
+                    <h1 class="brand-headline">
+                        Educación que impulsa<br>
+                        el <span class="brand-accent">futuro.</span>
+                    </h1>
+                    <p class="brand-copy">
+                        Gestiona matrículas, pagos, estudiantes y procesos académicos desde un solo lugar.
+                    </p>
+
+                    <ul class="brand-features">
+                        <li class="brand-feature"><i class="fas fa-user-graduate" aria-hidden="true"></i> Matrículas</li>
+                        <li class="brand-feature"><i class="fas fa-credit-card" aria-hidden="true"></i> Pagos</li>
+                        <li class="brand-feature"><i class="fas fa-chalkboard-user" aria-hidden="true"></i> Gestión académica</li>
+                        <li class="brand-feature"><i class="fas fa-chart-simple" aria-hidden="true"></i> Reportes</li>
+                    </ul>
+                </div>
+
+                <div class="brand-footer">
+                    <p>Plataforma administrativa institucional</p>
+                    <p class="brand-copyright">
+                        &copy; {{ date('Y') }} Next Level School. Todos los derechos reservados.
+                    </p>
+                </div>
             </section>
 
+            {{-- Panel derecho: formulario de acceso --}}
             <section class="login-form-panel">
-                <div class="mb-8 animate-fade-in">
-                    <p class="text-sm font-semibold text-gray-900">Bienvenido de nuevo</p>
-                    <h2 class="mt-2 text-2xl font-bold text-gray-900">Inicia sesión</h2>
-                    <p class="mt-2 text-sm text-gray-500">Ingresa tus credenciales para continuar.</p>
+                <div class="animate-fade-in">
+                    <p class="login-eyebrow">Bienvenido de nuevo</p>
+                    <h2 class="login-title">Inicia sesión</h2>
+                    <p class="login-subtitle">Ingresa tus credenciales para acceder al sistema.</p>
                 </div>
 
                 @if ($errors->any())
-                    <div class="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
-                        <div class="flex items-center">
-                            <i class="fas fa-exclamation-circle mr-2"></i>
+                    <div class="login-alert border border-red-200 bg-red-50 text-red-700" role="alert">
+                        <div class="flex items-start gap-2">
+                            <i class="fas fa-exclamation-circle mt-0.5" aria-hidden="true"></i>
                             <div>
                                 @foreach ($errors->all() as $error)
-                                    <p class="text-sm">{{ $error }}</p>
+                                    <p>{{ $error }}</p>
                                 @endforeach
                             </div>
                         </div>
                     </div>
                 @endif
 
-                @if(session('status'))
-                <div class="mb-6 rounded-lg border border-yellow-300 bg-yellow-50 p-4 text-yellow-700">
-                    <div class="flex items-center">
-                        <i class="fas fa-exclamation-triangle mr-2"></i>
-                        <span class="text-sm">{{ session('status') }}</span>
+                @if (session('status'))
+                    <div class="login-alert border border-amber-200 bg-amber-50 text-amber-800" role="status">
+                        <div class="flex items-start gap-2">
+                            <i class="fas fa-exclamation-triangle mt-0.5" aria-hidden="true"></i>
+                            <p>{{ session('status') }}</p>
+                        </div>
                     </div>
-                </div>
                 @endif
 
                 <form method="POST" action="{{ route('login') }}"
                       x-data="{ showPassword: false, loading: false }"
                       x-on:submit="loading = true"
-                      class="animate-fade-in">
+                      class="mt-8 animate-fade-in">
                     @csrf
 
                     <div class="mb-5">
-                        <label for="email" class="block text-sm font-semibold text-gray-700">Correo electrónico</label>
-                        <div class="relative mt-1">
-                            <i class="fas fa-envelope absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none"></i>
+                        <label for="email" class="field-label">Correo electrónico</label>
+                        <div class="relative mt-2">
+                            <i class="fas fa-envelope field-icon" aria-hidden="true"></i>
                             <input type="email" name="email" id="email" value="{{ old('email') }}"
-                                   class="login-field pl-10"
+                                   class="login-field pl-11"
                                    placeholder="usuario@nextlevel.edu.pe"
                                    required autofocus autocomplete="username">
                         </div>
                     </div>
 
-                    <div class="mb-6">
-                        <label for="password" class="block text-sm font-semibold text-gray-700">Contraseña</label>
-                        <div class="relative mt-1">
-                            <i class="fas fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none"></i>
+                    <div>
+                        <label for="password" class="field-label">Contraseña</label>
+                        <div class="relative mt-2">
+                            <i class="fas fa-lock field-icon" aria-hidden="true"></i>
                             <input x-bind:type="showPassword ? 'text' : 'password'"
                                    name="password" id="password"
-                                   class="login-field pl-10 pr-10"
+                                   class="login-field pl-11 pr-11"
                                    placeholder="Ingresa tu contraseña"
                                    required autocomplete="current-password">
                             <button type="button"
                                     x-on:click="showPassword = !showPassword"
-                                    class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none">
-                                <i x-bind:class="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+                                    class="field-toggle"
+                                    :aria-label="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'">
+                                <i x-bind:class="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'" aria-hidden="true"></i>
                             </button>
                         </div>
                     </div>
 
-                    <div class="flex items-center justify-between mb-6">
-                        <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
-                            <input type="checkbox" name="remember" class="w-4 h-4 rounded border-gray-300 text-blue-700 focus:ring-blue-500">
+                    <div class="mt-6 flex flex-wrap items-center justify-between gap-3">
+                        <label class="login-remember">
+                            <input type="checkbox" name="remember">
                             Recuérdame
                         </label>
-                        <a href="{{ route('password.request') }}" class="text-sm text-blue-700 hover:text-blue-900 font-medium">
+                        <a href="{{ route('password.request') }}" class="login-link">
                             ¿Olvidaste tu contraseña?
                         </a>
                     </div>
 
-                    <button type="submit"
-                            x-bind:disabled="loading"
-                            class="btn-primary w-full rounded-lg px-4 py-3 font-semibold text-white">
+                    <button type="submit" class="btn-login mt-7" x-bind:disabled="loading">
                         <template x-if="loading">
-                            <svg class="animate-spin h-5 w-5 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <svg class="h-5 w-5 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                             </svg>
                         </template>
-                        <template x-if="!loading">
-                            <i class="fas fa-arrow-right">Ingresar al sistema</i>
-                        </template>
+                        <span x-show="!loading">Ingresar</span>
+                        <i x-show="!loading" class="fas fa-arrow-right" aria-hidden="true"></i>
                     </button>
                 </form>
 
-                <div class="mt-8 border-t border-gray-100 pt-5 text-center text-xs text-gray-500">
-                    <i class="fas fa-shield-halved mr-1"></i>Acceso seguro para personal autorizado
+                <div class="login-divider">
+                    <i class="fas fa-shield-halved" aria-hidden="true"></i>
+                    <span>Acceso seguro para personal autorizado</span>
                 </div>
-                <p class="mt-2 text-center text-xs text-gray-400">
+
+                <p class="login-legal">
                     ¿No tienes cuenta? Solicítala al administrador del sistema.
                 </p>
             </section>
+
         </div>
     </div>
 </x-guest-layout>

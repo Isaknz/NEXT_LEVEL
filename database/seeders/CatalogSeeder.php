@@ -26,7 +26,6 @@ class CatalogSeeder extends Seeder
         );
 
         $niveles = [
-            ['codigo' => 'INI', 'nombre' => 'INICIAL'],
             ['codigo' => 'PRI', 'nombre' => 'PRIMARIA'],
             ['codigo' => 'SEC', 'nombre' => 'SECUNDARIA'],
             ['codigo' => 'ACA', 'nombre' => 'ACADEMIA'],
@@ -37,7 +36,6 @@ class CatalogSeeder extends Seeder
         }
 
         $grados = [
-            ['INICIAL', ['1°', '2°', '3°']],
             ['PRIMARIA', ['1°', '2°', '3°', '4°', '5°', '6°']],
             ['SECUNDARIA', ['1°', '2°', '3°', '4°', '5°']],
         ];

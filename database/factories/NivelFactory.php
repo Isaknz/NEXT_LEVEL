@@ -14,7 +14,7 @@ class NivelFactory extends Factory
     {
         return [
             'codigo' => 'N-' . fake()->unique()->lexify('???'),
-            'nombre' => fake()->unique()->randomElement(['INICIAL', 'PRIMARIA', 'SECUNDARIA', 'ACADEMIA']),
+            'nombre' => fake()->unique()->randomElement(['PRIMARIA', 'SECUNDARIA', 'ACADEMIA']),
             'estado' => 'ACTIVO',
         ];
     }
