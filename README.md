@@ -186,7 +186,7 @@ Creadas por `database/seeders/UsuariosSeeder.php` (seeder idempotente, no pisa c
 php artisan test
 ```
 
-**215 tests · 615 aserciones** — ejecutado y verificado tanto en **SQLite** como en **MySQL real**.
+**223 tests · 625 aserciones** — ejecutado y verificado tanto en **SQLite** como en **MySQL real**.
 
 | Archivo de prueba | Cobertura |
 |---|---|
@@ -200,6 +200,7 @@ php artisan test
 | `UsuariosSemillaTest` | Seeder idempotente y bloqueo por clave temporal vía HTTP |
 | `MatriculaTest`, `PagoTest`, `CuentaPorCobrarTest`, `GastoTest`, `CajaCrudTest` | Lógica financiera crítica, transacciones, FK y duplicados |
 | `CatalogosCrudTest`, `AlumnoTest`, `DashboardTest`, `ReporteTest` | CRUD, catálogos, indicadores y exportaciones |
+| `RespaldoTest` | Política de retención y mensajes de los comandos de respaldo |
 
 ### Integración continua
 
@@ -218,6 +219,20 @@ sigue corriendo en SQLite con su base en memoria y nunca toca la base de desarro
 Aún **no** forman parte del CI: `pint --test` (falta reformatear ~110 archivos),
 análisis estático (Larastan), CodeQL y Dependabot.
 
+### Respaldo y restauración
+
+La base de datos se respalda con comandos Artisan, portables entre Windows y Linux:
+
+```bash
+php artisan respaldo:crear                  # volcado .sql.gz + manifiesto con SHA-256
+php artisan respaldo:restaurar <archivo> --destino=base_de_ensayo
+php artisan respaldo:restaurar <archivo> --forzar   # sobre la base configurada
+```
+
+El respaldo verifica su integridad, conserva 14 copias diarias más 13 semanales y
+compara las filas restauradas con el manifiesto. Procedimiento completo, RPO/RTO,
+programación y *runbook* en [`docs/backup-restore.md`](docs/backup-restore.md).
+
 ---
 
 ## 11. Estructura del código
@@ -229,10 +244,12 @@ app/Http/Middleware/     CheckRole, DebeCambiarClave, RolePermissionMiddleware
 app/Models/              23 modelos con scopes de filtrado
 app/Policies/            2 policies (anulación de pagos/gastos)
 app/Support/Permisos.php Fuente única de verdad de permisos
+app/Support/Respaldos/   Retención y cliente de binarios MySQL
+docs/                    backup-restore.md (procedimiento operativo)
 database/migrations/     32 migraciones versionadas
 database/seeders/        Catálogos + cuentas de roles
 resources/views/         97 vistas Blade
-tests/Feature/           19 archivos de prueba
+tests/Feature/           20 archivos de prueba
 ```
 
 ---
@@ -246,6 +263,7 @@ tests/Feature/           19 archivos de prueba
 | `ec83982` | Endurece acceso, permisos y restablecimiento de clave |
 | `8b8b6d5` | Actualiza .env.example con la configuracion real de correo e idioma |
 | `e845116` | **Cuarta actualización NEXTLEVEL Isaac** |
+| `cf3f800` | Configura CI con GitHub Actions y repara composer.lock |
 
 ---
 
@@ -261,7 +279,8 @@ tests/Feature/           19 archivos de prueba
 - ✅ **Auditoría completa** en las 14 acciones del dominio, con evidencia ante borrados.
 - ✅ **Reportes exportables** en CSV, Excel y PDF, más vistas de deudores y vencidos.
 - ✅ **Idioma** íntegramente español (interfaz, validaciones y correos).
-- ✅ **Pruebas:** 215 tests / 615 assertions verdes en SQLite **y** MySQL real, incluida la verificación de que toda ruta GET responde.
+- ✅ **Pruebas:** 223 tests / 625 assertions verdes en SQLite **y** MySQL real, incluida la verificación de que toda ruta GET responde.
+- ✅ **Respaldo y restauración** con comandos Artisan, verificación SHA-256, retención automática y ciclo de restauración ensayado (28/28 tablas idénticas), documentado en `docs/backup-restore.md`.
 - ✅ **Interfaz de acceso rediseñada** con identidad institucional y comportamiento responsive.
 - ✅ **Árbol de Git limpio** y sincronizado con el remoto.
 
@@ -274,7 +293,7 @@ tests/Feature/           19 archivos de prueba
 | 3 | **No se siembra cuenta de `cajero`**, aunque el rol ya está permitido en la matriz de permisos. | Bajo | Datos |
 | 4 | Rutas y vistas heredadas de Breeze siguen presentes (`verify-email`, `confirm-password`) sin uso evidente en el flujo de ingreso. | Bajo | Limpieza |
 | 5 | **No hay migración ni carga de datos de producción**; los *seeders* son de desarrollo/demostración. | Medio | Operación |
-| 6 | **No hay plan de respaldo de base de datos** ni proceso de despliegue documentado. | Medio | Operación |
+| 6 | **No hay proceso de despliegue documentado**; el plan de respaldo ya está implementado y documentado en `docs/backup-restore.md`. | Medio | Operación |
 | 7 | El README anterior **no correspondía con el código** (mencionaba 3 roles en vez de 4 y una contraseña de acceso que ya no es la vigente). Corregido en este documento. | — | Documentación |
 | 8 | No hay seguridad de segundo factor (2FA) ni política de rotación de contraseñas. | Bajo | Mejora |
 
@@ -282,7 +301,7 @@ tests/Feature/           19 archivos de prueba
 
 **Funcionalmente completo para su alcance.** El sistema cubre de punta a punta la operación académica y financiera de un colegio/academia: maestros, matrículas, cobranzas, caja, reportes, auditoría y control de accesos por rol. No queda ninguna funcionalidad del alcance descrito a medio construir, todas las rutas responden y la suite de pruebas está completa y en verde en dos motores de base de datos.
 
-**No está completo como entrega de ingeniería.** Lo que falta no es funcionalidad sino proceso y operación: fijar la rama por defecto del repositorio, limpieza de código heredado, análisis estático en el CI, datos de producción, estrategia de respaldo y despliegue. Son tareas acotadas y de bajo riesgo, ninguna de ellas bloquea el uso del sistema.
+**No está completo como entrega de ingeniería.** Lo que falta no es funcionalidad sino proceso y operación: fijar la rama por defecto del repositorio, limpieza de código heredado, análisis estático en el CI, datos de producción y proceso de despliegue. Son tareas acotadas y de bajo riesgo, ninguna de ellas bloquea el uso del sistema.
 
 > **Conclusión:** apto para usarse y demostrarse hoy. Antes de considerarlo "entregado en producción" conviene cerrar los puntos 1, 5 y 6 de la tabla de pendientes.
 
@@ -303,7 +322,8 @@ tests/Feature/           19 archivos de prueba
 - [x] Bloqueo por clave temporal activo
 - [x] Permisos por rol verificados
 - [x] Pruebas en verde en SQLite y MySQL
-- [ ] Integración continua
+- [x] Integración continua
+- [x] Plan de respaldo
 - [ ] Cuenta `cajero` de prueba
 - [ ] Limpieza de vistas heredadas
-- [ ] Plan de respaldo y despliegue
+- [ ] Plan de despliegue
