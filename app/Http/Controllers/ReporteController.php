@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Exports\ReportesExport;
 use App\Models\CuentaPorCobrar;
 use App\Models\Pago;
 use App\Models\PeriodoAcademico;
 use Excel;
+use Illuminate\Http\Request;
 use PDF;
 
 class ReporteController extends Controller
@@ -33,9 +33,9 @@ class ReporteController extends Controller
             ->withQueryString();
 
         return view('reportes.deudores', [
-            'deudores'   => $deudores,
-            'periodos'   => PeriodoAcademico::orderBy('anio', 'desc')->orderBy('nombre')->get(),
-            'periodoId'  => $periodoId,
+            'deudores' => $deudores,
+            'periodos' => PeriodoAcademico::orderBy('anio', 'desc')->orderBy('nombre')->get(),
+            'periodoId' => $periodoId,
         ]);
     }
 
@@ -57,16 +57,22 @@ class ReporteController extends Controller
             ->withQueryString();
 
         return view('reportes.vencidos', [
-            'vencidos'   => $vencidos,
-            'periodos'   => PeriodoAcademico::orderBy('anio', 'desc')->orderBy('nombre')->get(),
-            'periodoId'  => $periodoId,
+            'vencidos' => $vencidos,
+            'periodos' => PeriodoAcademico::orderBy('anio', 'desc')->orderBy('nombre')->get(),
+            'periodoId' => $periodoId,
         ]);
     }
 
-    private function datosReporte(): array
+    private function datosReporte(Request $request): array
     {
+        $desde = $request->query('desde');
+        $hasta = $request->query('hasta');
+
         return Pago::query()
             ->with(['matricula.alumno'])
+            ->where('estado', 'CONFIRMADO')
+            ->when($desde, fn ($q) => $q->whereDate('fecha_pago', '>=', $desde))
+            ->when($hasta, fn ($q) => $q->whereDate('fecha_pago', '<=', $hasta))
             ->orderBy('fecha_pago', 'desc')
             ->get()
             ->map(fn (Pago $p) => [
@@ -82,10 +88,10 @@ class ReporteController extends Controller
     public function exportExcel(Request $request)
     {
         $formato = $request->query('format', 'excel');
-        $datos = $this->datosReporte();
+        $datos = $this->datosReporte($request);
 
         $encabezados = ['Alumno', 'Matricula', 'Metodo de Pago', 'Monto', 'Estado'];
-        $archivo = 'reportes-' . now()->format('Y-m-d') . '.' . ($formato === 'excel' ? 'xlsx' : 'csv');
+        $archivo = 'reportes-'.now()->format('Y-m-d').'.'.($formato === 'excel' ? 'xlsx' : 'csv');
 
         if ($formato === 'excel') {
             return Excel::download(new ReportesExport($encabezados, $datos), $archivo);
@@ -101,11 +107,19 @@ class ReporteController extends Controller
         }, $archivo, ['Content-Type' => 'text/csv']);
     }
 
-    public function exportPdf()
+    public function exportPdf(Request $request)
     {
-        $reportes = Pago::with(['matricula.alumno'])->orderBy('fecha_pago', 'desc')->get();
+        $desde = $request->query('desde');
+        $hasta = $request->query('hasta');
+
+        $reportes = Pago::with(['matricula.alumno'])
+            ->where('estado', 'CONFIRMADO')
+            ->when($desde, fn ($q) => $q->whereDate('fecha_pago', '>=', $desde))
+            ->when($hasta, fn ($q) => $q->whereDate('fecha_pago', '<=', $hasta))
+            ->orderBy('fecha_pago', 'desc')
+            ->get();
         $pdf = PDF::loadView('reportes.pdf', compact('reportes'));
 
-        return $pdf->download('reportes-' . now()->format('Y-m-d') . '.pdf');
+        return $pdf->download('reportes-'.now()->format('Y-m-d').'.pdf');
     }
 }

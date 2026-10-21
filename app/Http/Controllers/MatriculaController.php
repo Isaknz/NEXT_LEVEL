@@ -61,6 +61,35 @@ class MatriculaController extends Controller
         $validated = $request->validated();
         $pagosIniciales = $request->input('pagos_iniciales');
 
+        // En el mismo formulario se puede dar de alta al alumno. Si viene
+        // alumno_nombre se crea el registro y se usa como id_alumno, de modo
+        // que nunca haya que salir del módulo para matricular a alguien nuevo.
+        if (empty($validated['id_alumno']) && $request->filled('alumno_nombres')) {
+            $alumno = Alumno::create([
+                'nombres' => $request->input('alumno_nombres'),
+                'apellidos' => $request->input('alumno_apellidos'),
+                'dni' => $request->input('alumno_dni') ?: null,
+                'fecha_nacimiento' => $request->input('alumno_fecha_nacimiento') ?: null,
+                'sexo' => $request->input('alumno_sexo') ?: null,
+                'celular' => $request->input('alumno_celular') ?: null,
+                'email' => $request->input('alumno_email') ?: null,
+                'id_grado' => $validated['id_grado'] ?? null,
+                'estado' => 'ACTIVO',
+            ]);
+
+            $validated['id_alumno'] = $alumno->id_alumno;
+
+            self::registrarMovimiento(
+                'CREAR',
+                'Alumnos',
+                'Alumno',
+                $alumno->id_alumno,
+                "Creó al alumno {$alumno->nombres} {$alumno->apellidos} desde el registro de matrícula",
+                null,
+                $alumno->toArray()
+            );
+        }
+
         $existe = Matricula::where('id_alumno', $validated['id_alumno'])
                           ->where('id_periodo', $validated['id_periodo'])
                           ->where('modalidad', $validated['modalidad'])

@@ -202,20 +202,22 @@
                                 <i class="fas fa-eye text-xs"></i>
                             </a>
                             @if($pago->estado === 'CONFIRMADO')
-                            <form method="POST" action="{{ route('pagos.anular', $pago->id_pago) }}" 
+                            <form method="POST" action="{{ route('pagos.anular', $pago->id_pago) }}"
                                   x-data="{ confirmDelete: false }" class="inline">
                                 @csrf
-                                @method('DELETE')
                                 <button type="button" @click="confirmDelete = true"
                                         class="bg-red-100 hover:bg-red-200 text-red-700 p-2 rounded-lg transition" title="Anular">
                                     <i class="fas fa-ban text-xs"></i>
                                 </button>
                                 <div x-show="confirmDelete" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-                                    <div class="bg-white rounded-lg p-6 max-w-sm">
-                                        <p class="font-semibold">¿Seguro que deseas anular el pago {{ $pago->codigo }}?</p>
-                                        <div class="mt-4 flex gap-2">
-                                            <button @click="confirmDelete = false" class="btn-secondary rounded px-3 py-1">Cancelar</button>
-                                            <button type="submit" @click="confirmDelete = false" class="bg-red-500 hover:bg-red-600 text-white rounded px-3 py-1">Confirmar</button>
+                                    <div class="bg-white rounded-lg p-6 max-w-sm w-full">
+                                        <p class="font-semibold mb-3">¿Seguro que deseas anular el pago {{ $pago->codigo }}?</p>
+                                        <label class="block text-sm font-semibold text-gray-700 mb-1">Motivo de anulación *</label>
+                                        <input type="text" name="motivo_anulacion" required maxlength="255"
+                                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500">
+                                        <div class="mt-4 flex gap-2 justify-end">
+                                            <button type="button" @click="confirmDelete = false" class="btn-secondary rounded px-3 py-1">Cancelar</button>
+                                            <button type="submit" class="bg-red-500 hover:bg-red-600 text-white rounded px-3 py-1">Confirmar</button>
                                         </div>
                                     </div>
                                 </div>

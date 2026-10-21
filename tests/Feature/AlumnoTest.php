@@ -12,6 +12,7 @@ use App\Models\Nivel;
 use App\Models\Pago;
 use App\Models\Caja;
 use App\Models\Matricula;
+use App\Models\Apoderado;
 
 class AlumnoTest extends TestCase
 {
@@ -118,5 +119,86 @@ class AlumnoTest extends TestCase
 
         $response->assertForbidden();
         $this->assertSame('CONFIRMADO', $pago->fresh()->estado, 'El pago no debe anularse.');
+    }
+
+    public function test_al_crear_alumno_se_vincula_el_apoderado_en_el_pivot(): void
+    {
+        $user = User::factory()->create();
+        $this->actingAs($user);
+
+        $apoderado = Apoderado::create([
+            'dni' => '11223344',
+            'nombres' => 'Maria',
+            'apellidos' => 'Lopez',
+            'estado' => 'ACTIVO',
+        ]);
+
+        $response = $this->post('/alumnos', [
+            'nombres' => 'Ana',
+            'apellidos' => 'Lopez',
+            'id_apoderado' => $apoderado->id_apoderado,
+            'parentesco' => 'MADRE',
+            'estado' => 'ACTIVO',
+        ]);
+
+        $response->assertRedirect();
+
+        $alumno = Alumno::where('nombres', 'Ana')->firstOrFail();
+        $this->assertDatabaseHas('alumno_apoderado', [
+            'id_alumno' => $alumno->id_alumno,
+            'id_apoderado' => $apoderado->id_apoderado,
+            'parentesco' => 'MADRE',
+            'es_principal' => 1,
+        ]);
+        $this->assertSame(1, $apoderado->alumnos()->count());
+    }
+
+    public function test_al_actualizar_alumno_se_sincroniza_el_apoderado(): void
+    {
+        $user = User::factory()->create();
+        $this->actingAs($user);
+
+        $alumno = Alumno::factory()->create();
+
+        $apoderado = Apoderado::create([
+            'dni' => '55667788',
+            'nombres' => 'Jose',
+            'apellidos' => 'Ramos',
+            'estado' => 'ACTIVO',
+        ]);
+
+        $response = $this->put('/alumnos/'.$alumno->id_alumno, [
+            'codigo' => $alumno->codigo,
+            'nombres' => $alumno->nombres,
+            'apellidos' => $alumno->apellidos,
+            'id_apoderado' => $apoderado->id_apoderado,
+            'parentesco' => 'PADRE',
+            'estado' => 'ACTIVO',
+        ]);
+
+        $response->assertRedirect();
+        $this->assertDatabaseHas('alumno_apoderado', [
+            'id_alumno' => $alumno->id_alumno,
+            'id_apoderado' => $apoderado->id_apoderado,
+            'parentesco' => 'PADRE',
+        ]);
+    }
+
+    public function test_un_codigo_eliminado_logicamente_no_provoca_error_500(): void
+    {
+        $user = User::factory()->create();
+        $this->actingAs($user);
+
+        Alumno::factory()->create(['codigo' => 'DUP-001'])->delete();
+
+        $response = $this->post('/alumnos', [
+            'codigo' => 'DUP-001',
+            'nombres' => 'Nuevo',
+            'apellidos' => 'Alumno',
+            'estado' => 'ACTIVO',
+        ]);
+
+        $response->assertSessionHasErrors('codigo');
+        $response->assertStatus(302);
     }
 }

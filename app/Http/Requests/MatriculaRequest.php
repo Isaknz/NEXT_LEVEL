@@ -23,7 +23,19 @@ class MatriculaRequest extends FormRequest
                 'max:40',
                 Rule::unique('matriculas', 'codigo')->ignore($matricula?->id_matricula, 'id_matricula'),
             ],
-            'id_alumno' => 'required|exists:alumnos,id_alumno',
+            'id_alumno' => 'nullable|required_without:alumno_nombres|exists:alumnos,id_alumno',
+            'alumno_nombres' => 'nullable|required_without:id_alumno|string|max:100',
+            'alumno_apellidos' => 'nullable|required_with:alumno_nombres|string|max:100',
+            'alumno_dni' => [
+                'nullable',
+                'string',
+                'size:8',
+                Rule::unique('alumnos', 'dni')->whereNull('deleted_at'),
+            ],
+            'alumno_fecha_nacimiento' => 'nullable|date',
+            'alumno_sexo' => 'nullable|in:F,M,OTRO,NO_DECLARA',
+            'alumno_celular' => 'nullable|string|max:20',
+            'alumno_email' => 'nullable|email|max:120',
             'id_periodo' => 'required|exists:periodos_academicos,id_periodo',
             'id_nivel' => 'required|exists:niveles,id_nivel',
             'modalidad' => 'required|in:ESCOLAR,ACADEMIA',
@@ -56,6 +68,10 @@ class MatriculaRequest extends FormRequest
     public function attributes(): array
     {
         return [
+            'id_alumno' => 'alumno',
+            'alumno_nombres' => 'nombres del alumno',
+            'alumno_apellidos' => 'apellidos del alumno',
+            'alumno_dni' => 'DNI del alumno',
             'id_grado' => 'grado',
             'id_ciclo' => 'ciclo',
             'id_periodo' => 'periodo académico',
@@ -66,6 +82,9 @@ class MatriculaRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'id_alumno.required_without' => 'Selecciona un alumno existente o registra uno nuevo.',
+            'alumno_nombres.required_without' => 'Selecciona un alumno existente o registra uno nuevo.',
+            'alumno_dni.unique' => 'Ya existe un alumno con ese DNI.',
             'id_grado.exists' => 'El grado seleccionado no pertenece al nivel elegido.',
             'id_ciclo.exists' => 'El ciclo seleccionado no pertenece al periodo académico elegido.',
         ];

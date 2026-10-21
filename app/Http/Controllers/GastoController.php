@@ -4,9 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\AnulacionRequest;
 use App\Http\Requests\GastoRequest;
-use App\Models\Gasto;
-use App\Models\CategoriaGasto;
 use App\Models\Caja;
+use App\Models\CategoriaGasto;
+use App\Models\Gasto;
 use App\Models\MovimientoCaja;
 use App\Traits\RegistraMovimientos;
 use Illuminate\Http\Request;
@@ -33,12 +33,12 @@ class GastoController extends Controller
         $stats = [
             'total' => Gasto::where('estado', 'REGISTRADO')->count(),
             'total_mes' => Gasto::where('estado', 'REGISTRADO')
-                              ->whereMonth('fecha_gasto', now()->month)
-                              ->whereYear('fecha_gasto', now()->year)
-                              ->sum('monto'),
+                ->whereMonth('fecha_gasto', now()->month)
+                ->whereYear('fecha_gasto', now()->year)
+                ->sum('monto'),
             'total_hoy' => Gasto::where('estado', 'REGISTRADO')
-                              ->whereDate('fecha_gasto', today())
-                              ->sum('monto'),
+                ->whereDate('fecha_gasto', today())
+                ->sum('monto'),
             'anulados' => Gasto::where('estado', 'ANULADO')->count(),
         ];
 
@@ -57,6 +57,14 @@ class GastoController extends Controller
     {
         $datos = $request->validated();
 
+        $caja = Caja::find($datos['id_caja']);
+
+        if (! $caja || $caja->estado !== 'ACTIVA') {
+            return back()->withErrors([
+                'id_caja' => 'La caja seleccionada no está abierta.',
+            ])->withInput();
+        }
+
         $datos['estado'] = 'REGISTRADO';
         $datos['registrado_por'] = auth()->id();
         $datos['archivo_url'] = $this->guardarComprobante($request);
@@ -66,7 +74,7 @@ class GastoController extends Controller
         $gasto = null;
 
         try {
-            DB::transaction(function () use ($request, $datos, &$gasto) {
+            DB::transaction(function () use ($datos, &$gasto) {
                 $gasto = Gasto::create($datos);
 
                 MovimientoCaja::create([
@@ -107,13 +115,17 @@ class GastoController extends Controller
             $gasto->toArray()
         );
 
-        return redirect()->route('gastos.show', $gasto->id_gasto)
-                        ->with('success', '¡Gasto registrado exitosamente!');
+        // El cajero no tiene acceso a gastos.index ni gastos.show; se le
+        // devuelve al formulario para que no reciba un 403 tras guardar.
+        return auth()->user()->role === 'cajero'
+            ? redirect()->route('gastos.create')->with('success', "Gasto {$gasto->codigo} registrado exitosamente.")
+            : redirect()->route('gastos.show', $gasto->id_gasto)->with('success', '¡Gasto registrado exitosamente!');
     }
 
     public function show(Gasto $gasto)
     {
         $gasto->load(['categoria', 'caja', 'registradoPor', 'anuladoPor']);
+
         return view('gastos.show', compact('gasto'));
     }
 
@@ -124,11 +136,16 @@ class GastoController extends Controller
         }
         if ($gasto->estado === 'ANULADO') {
             return redirect()->route('gastos.index')
-                            ->with('error', 'No se puede editar un gasto anulado.');
+                ->with('error', 'No se puede editar un gasto anulado.');
         }
 
-        $cajas = Caja::where('estado', 'ACTIVA')->get();
-        $categorias = CategoriaGasto::where('estado', 'ACTIVO')->orderBy('nombre')->get();
+        $cajas = Caja::where('estado', 'ACTIVA')
+            ->when($gasto->id_caja, fn ($q) => $q->orWhere('id_caja', $gasto->id_caja))
+            ->get();
+        $categorias = CategoriaGasto::where('estado', 'ACTIVO')
+            ->when($gasto->id_categoria, fn ($q) => $q->orWhere('id_categoria', $gasto->id_categoria))
+            ->orderBy('nombre')
+            ->get();
 
         return view('gastos.edit', compact('gasto', 'cajas', 'categorias'));
     }
@@ -140,12 +157,21 @@ class GastoController extends Controller
         }
         if ($gasto->estado === 'ANULADO') {
             return redirect()->route('gastos.index')
-                            ->with('error', 'No se puede editar un gasto anulado.');
+                ->with('error', 'No se puede editar un gasto anulado.');
         }
 
         $valoresAnteriores = $gasto->toArray();
 
         $datos = $request->validated();
+
+        // Solo se admite mover el gasto a una caja abierta.
+        $caja = Caja::find($datos['id_caja']);
+
+        if (! $caja || $caja->estado !== 'ACTIVA') {
+            return back()->withErrors([
+                'id_caja' => 'La caja seleccionada no está abierta.',
+            ])->withInput();
+        }
 
         if ($request->hasFile('archivo')) {
             if ($gasto->archivo_url) {
@@ -157,15 +183,15 @@ class GastoController extends Controller
         unset($datos['archivo']);
 
         try {
-            DB::transaction(function () use ($request, $gasto, $datos) {
+            DB::transaction(function () use ($gasto, $datos) {
                 $gasto->update($datos);
 
                 MovimientoCaja::where('id_gasto', $gasto->id_gasto)
-                              ->update([
-                                  'id_caja' => $datos['id_caja'],
-                                  'monto' => $datos['monto'],
-                                  'descripcion' => "Gasto {$gasto->codigo} - {$gasto->concepto}",
-                              ]);
+                    ->update([
+                        'id_caja' => $datos['id_caja'],
+                        'monto' => $datos['monto'],
+                        'descripcion' => "Gasto {$gasto->codigo} - {$gasto->concepto}",
+                    ]);
             });
         } catch (\Throwable $e) {
             Log::error('Error al actualizar gasto', [
@@ -190,7 +216,7 @@ class GastoController extends Controller
         );
 
         return redirect()->route('gastos.index')
-                        ->with('success', '¡Gasto actualizado exitosamente!');
+            ->with('success', '¡Gasto actualizado exitosamente!');
     }
 
     public function anular(AnulacionRequest $request, Gasto $gasto)
@@ -220,7 +246,7 @@ class GastoController extends Controller
             $gasto->save();
 
             MovimientoCaja::where('id_gasto', $gasto->id_gasto)
-                          ->update(['estado' => 'ANULADO']);
+                ->update(['estado' => 'ANULADO']);
 
             DB::commit();
         } catch (\Throwable $e) {
@@ -248,7 +274,7 @@ class GastoController extends Controller
         );
 
         return redirect()->route('gastos.index')
-                        ->with('success', '¡Gasto anulado exitosamente!');
+            ->with('success', '¡Gasto anulado exitosamente!');
     }
 
     public function destroy(Gasto $gasto)
@@ -259,6 +285,7 @@ class GastoController extends Controller
         if (auth()->user()->role === 'cajero') {
             return abort(403, 'Sin permisos');
         }
+
         return back()->withErrors(['error' => 'Para eliminar un gasto, primero debe anularlo.']);
     }
 

@@ -19,17 +19,30 @@
 | **Policies** | 2 |
 | **Factories** | 13 |
 | **Archivos de prueba** | 20 |
-| **Tests / aserciones** | **215 / 615** (verdes en SQLite y MySQL) |
+| **Tests / aserciones** | **223 / 627** (verdes en SQLite y MySQL) |
 | **Roles soportados** | 4 (`admin`, `gerente`, `secretaria`, `cajero`) |
 | **Acciones auditadas** | 14 |
-| **Commits** | 8 en `master` (incluye esta actualización) |
+| **Rama oficial** | `master` |
+| **Commits** | 9+ en `master` |
 | **CI/CD** | GitHub Actions: `.github/workflows/ci.yml` (PHP 8.2 y 8.3 + MySQL 8) |
 
 **Estado actual:** funcional, sin errores de compilación, rutas verificadas y con autenticación endurecida.
 
 ---
 
-## 2. Tecnologías
+## 1.5 Rama oficial
+
+**Rama oficial de desarrollo y entrega:** `master`
+
+La rama `main` contiene únicamente el esqueleto inicial de Laravel y **no debe utilizarse** para despliegues. El sistema real se encuentra en `master`.
+
+Antes de clonar para evaluación o despliegue, utiliza siempre:
+
+```bash
+git clone --branch master https://github.com/Isaknz/NEXT_LEVEL.git
+```
+
+Para obtener el commit exacto de esta entrega, consulta el historial de Git o la etiqueta `v1.0.0` cuando esté publicada.
 
 - **Backend:** Laravel 12 (PHP 8.2+)
 - **Frontend:** Blade + Tailwind CSS + Alpine.js, compilado con **Vite 7.3.6**
@@ -163,6 +176,7 @@ Creadas por `database/seeders/UsuariosSeeder.php` (seeder idempotente, no pisa c
 | `admin@nextlevel.edu.pe` | `admin` |
 | `gerente@nextlevel.edu.pe` | `gerente` |
 | `secretaria@nextlevel.edu.pe` | `secretaria` |
+| `cajero@nextlevel.edu.pe` | `cajero` |
 
 > Las tres se crean con **clave temporal** (`password_changed_at = NULL`), por lo que obligan a cambiarla en el primer ingreso. Las contraseñas están definidas en el seeder; no se documentan aquí a propósito.
 
@@ -186,7 +200,7 @@ Creadas por `database/seeders/UsuariosSeeder.php` (seeder idempotente, no pisa c
 php artisan test
 ```
 
-**223 tests · 625 aserciones** — ejecutado y verificado tanto en **SQLite** como en **MySQL real**.
+**229 tests · 642 aserciones** — ejecutado y verificado tanto en **SQLite** como en **MySQL real**.
 
 | Archivo de prueba | Cobertura |
 |---|---|

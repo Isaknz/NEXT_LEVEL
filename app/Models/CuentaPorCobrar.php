@@ -72,6 +72,11 @@ class CuentaPorCobrar extends Model
      */
     public function recalcularEstado(): void
     {
+        // Una cuenta anulada no debe reactivarse por recalcular el saldo.
+        if ($this->estado === 'ANULADA') {
+            return;
+        }
+
         $totalPagado = $this->pagoDetalles()
                             ->whereHas('pago', function ($q) {
                                 $q->where('estado', 'CONFIRMADO');

@@ -44,6 +44,12 @@ class UsuariosSeeder extends Seeder
             'password' => 'nextlevel2026',
             'role' => 'secretaria',
         ],
+        [
+            'email' => 'cajero@nextlevel.edu.pe',
+            'nombre' => 'Cajero',
+            'password' => 'nextlevel2026',
+            'role' => 'cajero',
+        ],
     ];
 
     public function run(): void

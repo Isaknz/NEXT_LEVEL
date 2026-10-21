@@ -759,3 +759,8 @@ aside::-webkit-scrollbar-thumb {
     min-height: calc(100vh - 4rem);
 }
 
+/* Evita el parpadeo de elementos Alpine antes de inicializar. */
+[x-cloak] {
+    display: none !important;
+}
+

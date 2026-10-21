@@ -46,8 +46,15 @@
                 <label class="block text-sm font-semibold text-gray-700 mb-2">
                     <i class="fas fa-user-graduate text-indigo-500 mr-1"></i>Alumno *
                 </label>
-                <select name="id_alumno" id="id_alumno" required class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
-                    <option value="">Seleccionar alumno</option>
+
+                @if($alumnos->isEmpty())
+                    <p class="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-2">
+                        <i class="fas fa-info-circle mr-1"></i>Todavía no hay alumnos activos. Registra al primero aquí abajo.
+                    </p>
+                @endif
+
+                <select name="id_alumno" id="id_alumno" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white" {{ $alumnos->isEmpty() ? 'disabled' : '' }}>
+                    <option value="">— Registrar un alumno nuevo —</option>
                     @foreach($alumnos as $alumno)
                         <option value="{{ $alumno->id_alumno }}"
                                 data-codigo="{{ $alumno->codigo }}"
@@ -57,6 +64,56 @@
                         </option>
                     @endforeach
                 </select>
+                <p class="text-xs text-gray-500 mt-1">Si eliges un alumno existente, ignora los campos de abajo.</p>
+            </div>
+
+            <!-- Alumno nuevo -->
+            <div id="bloque-alumno-nuevo" class="md:col-span-2 bg-blue-50 border border-blue-200 rounded-xl p-4">
+                <p class="text-sm font-semibold text-blue-900 mb-3">
+                    <i class="fas fa-user-plus mr-1"></i>Datos del alumno nuevo
+                </p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Nombres *</label>
+                        <input type="text" name="alumno_nombres" value="{{ old('alumno_nombres') }}" maxlength="100"
+                               class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Apellidos *</label>
+                        <input type="text" name="alumno_apellidos" value="{{ old('alumno_apellidos') }}" maxlength="100"
+                               class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">DNI</label>
+                        <input type="text" name="alumno_dni" value="{{ old('alumno_dni') }}" maxlength="8" placeholder="8 dígitos"
+                               class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Fecha de nacimiento</label>
+                        <input type="date" name="alumno_fecha_nacimiento" value="{{ old('alumno_fecha_nacimiento') }}"
+                               class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Sexo</label>
+                        <select name="alumno_sexo" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
+                            <option value="">Seleccionar</option>
+                            <option value="F" {{ old('alumno_sexo') === 'F' ? 'selected' : '' }}>Femenino</option>
+                            <option value="M" {{ old('alumno_sexo') === 'M' ? 'selected' : '' }}>Masculino</option>
+                            <option value="OTRO" {{ old('alumno_sexo') === 'OTRO' ? 'selected' : '' }}>Otro</option>
+                            <option value="NO_DECLARA" {{ old('alumno_sexo') === 'NO_DECLARA' ? 'selected' : '' }}>No declara</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Celular</label>
+                        <input type="text" name="alumno_celular" value="{{ old('alumno_celular') }}" maxlength="20"
+                               class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Email</label>
+                        <input type="email" name="alumno_email" value="{{ old('alumno_email') }}" maxlength="120"
+                               class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                </div>
             </div>
 
             <!-- Periodo -->
@@ -123,7 +180,7 @@
                 <select name="id_grado" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
                     <option value="">Seleccionar grado</option>
                     @foreach($grados as $grado)
-                        <option value="{{ $grado->id_grado }}" {{ old('id_grado') == $grado->id_grado ? 'selected' : '' }}>
+                        <option value="{{ $grado->id_grado }}" data-nivel="{{ $grado->id_nivel }}" {{ old('id_grado') == $grado->id_grado ? 'selected' : '' }}>
                             {{ $grado->nombre }} - {{ $grado->nivel->nombre }}
                         </option>
                     @endforeach
@@ -183,19 +240,51 @@
         const campoGrado = document.getElementById('campo-grado');
         const campoCiclo = document.getElementById('campo-ciclo');
         const alumnoSelect = document.getElementById('id_alumno');
+        const bloqueNuevo = document.getElementById('bloque-alumno-nuevo');
+        const nivelSelect = document.getElementById('id_nivel');
+        const gradoSelect = document.querySelector('#campo-grado select');
+        const gradosOriginales = Array.from(gradoSelect.options);
 
         function toggleModalidad() {
             const modalidad = modalidadSelect.value;
 
-            if (modalidad === 'ESCOLAR') {
-                campoGrado.classList.remove('hidden');
-                campoCiclo.classList.add('hidden');
-            } else if (modalidad === 'ACADEMIA') {
+            if (modalidad === 'ACADEMIA') {
                 campoGrado.classList.add('hidden');
                 campoCiclo.classList.remove('hidden');
             } else {
                 campoGrado.classList.remove('hidden');
                 campoCiclo.classList.add('hidden');
+            }
+        }
+
+        // Filtra los grados mostrando solo los del nivel elegido.
+        function filtrarGrados() {
+            const nivel = nivelSelect.value;
+            const seleccionado = gradoSelect.value;
+
+            gradoSelect.innerHTML = '';
+            gradosOriginales.forEach(function(opcion) {
+                if (opcion.value === '' || !nivel || opcion.dataset.nivel === nivel) {
+                    gradoSelect.appendChild(opcion.cloneNode(true));
+                }
+            });
+
+            const sigueDisponible = Array.from(gradoSelect.options).some(function(o) { return o.value === seleccionado; });
+            gradoSelect.value = sigueDisponible ? seleccionado : '';
+        }
+
+        function toggleAlumnoNuevo() {
+            const esNuevo = !alumnoSelect.value;
+            bloqueNuevo.classList.toggle('hidden', !esNuevo);
+
+            if (esNuevo) {
+                bloqueNuevo.querySelectorAll('input, select').forEach(function(campo) {
+                    campo.removeAttribute('disabled');
+                });
+            } else {
+                bloqueNuevo.querySelectorAll('input, select').forEach(function(campo) {
+                    campo.setAttribute('disabled', 'disabled');
+                });
             }
         }
 
@@ -207,10 +296,16 @@
                 modalidadSelect.value = modalidad;
                 toggleModalidad();
             }
+
+            toggleAlumnoNuevo();
         });
 
         modalidadSelect.addEventListener('change', toggleModalidad);
+        nivelSelect.addEventListener('change', filtrarGrados);
+
         toggleModalidad();
+        filtrarGrados();
+        toggleAlumnoNuevo();
     });
 </script>
 @endsection

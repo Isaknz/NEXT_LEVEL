@@ -22,7 +22,6 @@ class AlumnoRequest extends FormRequest
                 'string',
                 'max:30',
                 Rule::unique('alumnos', 'codigo')
-                    ->whereNull('deleted_at')
                     ->ignore($alumno?->id_alumno, 'id_alumno'),
             ],
             'dni' => [
@@ -30,7 +29,6 @@ class AlumnoRequest extends FormRequest
                 'string',
                 'size:8',
                 Rule::unique('alumnos', 'dni')
-                    ->whereNull('deleted_at')
                     ->ignore($alumno?->id_alumno, 'id_alumno'),
             ],
             'nombres' => 'required|string|max:100',

@@ -138,37 +138,41 @@
 @endif
 
 <!-- Filters Section -->
-<div class="bg-white rounded-xl shadow p-6 mb-8">
+<form method="GET" action="{{ route('dashboard') }}" class="bg-white rounded-xl shadow p-6 mb-8">
     <h3 class="text-lg font-semibold text-gray-800 mb-4">Filtros de Reportes</h3>
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div>
             <label class="block text-sm text-gray-500 mb-1">Periodo Académico</label>
-            <select class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <select name="periodo" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <option value="">Todos los periodos</option>
                 @foreach(\App\Models\PeriodoAcademico::all() as $periodo)
-                    <option value="{{ $periodo->id_periodo }}">{{ $periodo->nombre }}</option>
+                    <option value="{{ $periodo->id_periodo }}" {{ request('periodo') == $periodo->id_periodo ? 'selected' : '' }}>{{ $periodo->nombre }}</option>
                 @endforeach
             </select>
         </div>
         <div>
             <label class="block text-sm text-gray-500 mb-1">Fecha Desde</label>
-            <input type="date" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <input type="date" name="desde" value="{{ request('desde') }}" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
         </div>
         <div>
             <label class="block text-sm text-gray-500 mb-1">Fecha Hasta</label>
-            <input type="date" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <input type="date" name="hasta" value="{{ request('hasta') }}" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
         </div>
         <div>
             <label class="block text-sm text-gray-500 mb-1">Caja</label>
-            <select class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <select name="caja" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <option value="">Todas las cajas</option>
                 @foreach(\App\Models\Caja::all() as $caja)
-                    <option value="{{ $caja->id_caja }}">{{ $caja->nombre }}</option>
+                    <option value="{{ $caja->id_caja }}" {{ request('caja') == $caja->id_caja ? 'selected' : '' }}>{{ $caja->nombre }}</option>
                 @endforeach
             </select>
         </div>
     </div>
-</div>
+    <div class="mt-4 flex gap-2">
+        <button type="submit" class="bg-blue-600 text-white rounded-lg px-4 py-2 text-sm hover:bg-blue-700 transition">Filtrar</button>
+        <a href="{{ route('dashboard') }}" class="bg-gray-200 text-gray-700 rounded-lg px-4 py-2 text-sm hover:bg-gray-300 transition">Limpiar</a>
+    </div>
+</form>
 
 <!-- Charts Section -->
 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">

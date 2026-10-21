@@ -23,21 +23,24 @@ class UsuariosSemillaTest extends TestCase
         $this->seed(UsuariosSeeder::class);
     }
 
-    public function test_se_crean_las_tres_cuentas_solicitadas(): void
+    public function test_se_crean_las_cuentas_solicitadas(): void
     {
         $admin = User::where('email', 'admin@nextlevel.edu.pe')->first();
         $gerente = User::where('email', 'gerente@nextlevel.edu.pe')->first();
         $secretaria = User::where('email', 'secretaria@nextlevel.edu.pe')->first();
+        $cajero = User::where('email', 'cajero@nextlevel.edu.pe')->first();
 
         $this->assertNotNull($admin, 'debe existir la cuenta de administrador');
         $this->assertNotNull($gerente, 'debe existir la cuenta de gerente');
         $this->assertNotNull($secretaria, 'debe existir la cuenta de secretaria');
+        $this->assertNotNull($cajero, 'debe existir la cuenta de cajero');
 
         $this->assertSame('admin', $admin->role);
         $this->assertSame('gerente', $gerente->role);
         $this->assertSame('secretaria', $secretaria->role);
+        $this->assertSame('cajero', $cajero->role);
 
-        foreach ([$admin, $gerente, $secretaria] as $usuario) {
+        foreach ([$admin, $gerente, $secretaria, $cajero] as $usuario) {
             $this->assertSame('activo', $usuario->estado);
             $this->assertNull($usuario->password_changed_at, 'deben arrancar con clave temporal');
         }
@@ -45,6 +48,7 @@ class UsuariosSemillaTest extends TestCase
         $this->assertTrue(Hash::check('senati2026', $admin->password));
         $this->assertTrue(Hash::check('nextlevel2026', $gerente->password));
         $this->assertTrue(Hash::check('nextlevel2026', $secretaria->password));
+        $this->assertTrue(Hash::check('nextlevel2026', $cajero->password));
     }
 
     public function test_el_seeder_no_duplica_ni_pisa_una_clave_ya_cambiada(): void
@@ -54,7 +58,7 @@ class UsuariosSemillaTest extends TestCase
 
         $this->seed(UsuariosSeeder::class);
 
-        $this->assertSame(3, User::count());
+        $this->assertSame(4, User::count());
         $gerente->refresh();
         $this->assertTrue(Hash::check('clave-propia', $gerente->password), 'no debe resetear la clave ya cambiada');
         $this->assertNotNull($gerente->password_changed_at);

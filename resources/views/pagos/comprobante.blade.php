@@ -20,8 +20,9 @@
             <p style="color: #666; margin: 5px 0 0 0;">Comprobante de Pago</p>
         </div>
         <div style="text-align: right;">
-            <p style="margin: 0; font-weight: bold;">Fecha: {{ $pago->created_at->format('d/m/Y') }}</p>
-            <p style="margin: 0;">Número: {{ $pago->codigo }}</p>
+            <p style="margin: 0; font-weight: bold;">Fecha: {{ $pago->fecha_pago?->format('d/m/Y') ?? $pago->created_at->format('d/m/Y') }}</p>
+            <p style="margin: 0;">Comprobante: {{ $pago->comprobante->serie ?? 'R001' }}-{{ $pago->comprobante->numero ?? str_pad($pago->id_pago, 6, '0', STR_PAD_LEFT) }}</p>
+            <p style="margin: 0;">Código: {{ $pago->codigo }}</p>
         </div>
     </div>
     <div class="info-grid">
@@ -36,7 +37,7 @@
         <thead><tr><th>Concepto</th><th>Monto</th></tr></thead>
         <tbody>
             @foreach($pago->detalles as $detalle)
-            <tr><td>{{ $detalle->cuentaPorCobrar->concepto->nombre }}</td><td>{{ number_format($detalle->monto, 2) }}</td></tr>
+            <tr><td>{{ $detalle->cuentaPorCobrar->concepto->nombre }}</td><td>{{ number_format($detalle->monto_aplicado, 2) }}</td></tr>
             @endforeach
         </tbody>
     </table>

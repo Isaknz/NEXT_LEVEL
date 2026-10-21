@@ -4,42 +4,62 @@ namespace App\Http\Controllers;
 
 use App\Models\Alumno;
 use App\Models\Apoderado;
-use App\Models\Matricula;
-use App\Models\Pago;
-use App\Models\Gasto;
 use App\Models\Caja;
 use App\Models\CuentaPorCobrar;
-use App\Models\RegistroMovimiento;
+use App\Models\Gasto;
+use App\Models\Matricula;
 use App\Models\MovimientoCaja;
+use App\Models\Pago;
+use App\Models\RegistroMovimiento;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $totalIngresos = Pago::where('estado', 'CONFIRMADO')->sum('monto_total');
-        $totalEgresos = Gasto::where('estado', 'REGISTRADO')->sum('monto');
+        $desde = $request->query('desde');
+        $hasta = $request->query('hasta');
+        $periodo = $request->query('periodo');
+        $caja = $request->query('caja');
+
+        $filtrarPagos = fn ($q) => $q
+            ->where('estado', 'CONFIRMADO')
+            ->when($desde, fn ($q2) => $q2->whereDate('fecha_pago', '>=', $desde))
+            ->when($hasta, fn ($q2) => $q2->whereDate('fecha_pago', '<=', $hasta))
+            ->when($caja, fn ($q2) => $q2->where('id_caja', $caja))
+            ->when($periodo, fn ($q2) => $q2->whereHas('matricula', fn ($m) => $m->where('id_periodo', $periodo)));
+
+        $filtrarGastos = fn ($q) => $q
+            ->where('estado', 'REGISTRADO')
+            ->when($desde, fn ($q2) => $q2->whereDate('fecha_gasto', '>=', $desde))
+            ->when($hasta, fn ($q2) => $q2->whereDate('fecha_gasto', '<=', $hasta))
+            ->when($caja, fn ($q2) => $q2->where('id_caja', $caja));
+
+        $totalIngresos = $filtrarPagos(Pago::query())->sum('monto_total');
+        $totalEgresos = $filtrarGastos(Gasto::query())->sum('monto');
 
         $saldosCajas = Caja::select('id_caja', 'nombre', 'saldo_inicial')
-                ->withCount(['movimientos as total_movimientos'])
-                ->get()
-                ->map(function ($caja) {
+            ->withCount(['movimientos as total_movimientos'])
+            ->get()
+            ->map(function ($caja) {
                 $latestMovimiento = MovimientoCaja::where('id_caja', $caja->id_caja)
-                        ->orderBy('fecha_movimiento', 'desc')
-                        ->first();
-                    $saldo = $caja->saldo_inicial;
-                    if ($latestMovimiento) {
-                        $movimientos = MovimientoCaja::where('id_caja', $caja->id_caja)
-                            ->where('estado', 'ACTIVO')
-                            ->get();
-                        $saldo = $movimientos->sum(function ($m) {
-                            return $m->tipo === 'INGRESO' ? $m->monto : -$m->monto;
-                        });
-                        $saldo += $caja->saldo_inicial;
-                    }
-                    $caja->saldo_actual = round($saldo, 2);
-                    return $caja;
-                });
+                    ->orderBy('fecha_movimiento', 'desc')
+                    ->first();
+                $saldo = $caja->saldo_inicial;
+                if ($latestMovimiento) {
+                    $movimientos = MovimientoCaja::where('id_caja', $caja->id_caja)
+                        ->where('estado', 'ACTIVO')
+                        ->get();
+                    $saldo = $movimientos->sum(function ($m) {
+                        return $m->tipo === 'INGRESO' ? $m->monto : -$m->monto;
+                    });
+                    $saldo += $caja->saldo_inicial;
+                }
+                $caja->saldo_actual = round($saldo, 2);
+
+                return $caja;
+            });
 
         $totalDeudores = Alumno::whereHas('matriculas', function ($q) {
             $q->whereHas('cuentasPorCobrar', function ($cq) {
@@ -51,19 +71,19 @@ class DashboardController extends Controller
             ->where('estado', 'PENDIENTE')
             ->count();
 
-        $pagosPorMetodo = Pago::where('estado', 'CONFIRMADO')
+        $pagosPorMetodo = $filtrarPagos(Pago::query())
             ->select('metodo_pago', DB::raw('count(*) as total, sum(monto_total) as monto_total'))
             ->groupBy('metodo_pago')
             ->get();
 
-        $ingresosMensuales = Pago::where('estado', 'CONFIRMADO')
+        $ingresosMensuales = $filtrarPagos(Pago::query())
             ->whereYear('fecha_pago', now()->year)
             ->get(['fecha_pago', 'monto_total'])
             ->groupBy(fn ($pago) => $pago->fecha_pago->month)
             ->map(fn ($pagos) => ['total' => $pagos->sum('monto_total')])
             ->toArray();
 
-        $egresosMensuales = Gasto::where('estado', 'REGISTRADO')
+        $egresosMensuales = $filtrarGastos(Gasto::query())
             ->whereYear('fecha_gasto', now()->year)
             ->get(['fecha_gasto', 'monto'])
             ->groupBy(fn ($gasto) => $gasto->fecha_gasto->month)

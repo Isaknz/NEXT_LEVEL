@@ -169,6 +169,38 @@
                         <option value="INACTIVO" {{ old('estado', $alumno->estado) === 'INACTIVO' ? 'selected' : '' }}>Inactivo</option>
                     </select>
                 </div>
+
+                <!-- Apoderado -->
+                @php
+                    $apoderadoActual = $alumno->id_apoderado ?? $alumno->apoderados->first()?->id_apoderado;
+                    $parentescoActual = $alumno->parentesco ?? $alumno->apoderados->first()?->pivot?->parentesco;
+                @endphp
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        <i class="fas fa-user-friends text-blue-500 mr-1"></i>Apoderado
+                    </label>
+                    <select name="id_apoderado" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white transition">
+                        <option value="">Sin apoderado asignado</option>
+                        @foreach($apoderados as $apoderado)
+                            <option value="{{ $apoderado->id_apoderado }}" {{ old('id_apoderado', $apoderadoActual) == $apoderado->id_apoderado ? 'selected' : '' }}>
+                                {{ $apoderado->apellidos }}, {{ $apoderado->nombres }} @if($apoderado->dni) ({{ $apoderado->dni }}) @endif
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <!-- Parentesco -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        <i class="fas fa-sitemap text-blue-500 mr-1"></i>Parentesco
+                    </label>
+                    <select name="parentesco" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white transition">
+                        <option value="">Seleccionar</option>
+                        @foreach(['MADRE', 'PADRE', 'TUTOR', 'ABUELO_A', 'HERMANO_A', 'TIO_A', 'OTRO'] as $opcion)
+                            <option value="{{ $opcion }}" {{ old('parentesco', $parentescoActual) == $opcion ? 'selected' : '' }}>{{ $opcion }}</option>
+                        @endforeach
+                    </select>
+                </div>
             </div>
 
             <!-- Botones -->

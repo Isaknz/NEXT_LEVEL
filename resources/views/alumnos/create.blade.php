@@ -103,6 +103,31 @@
                     <option value="INACTIVO">Inactivo</option>
                 </select>
             </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Apoderado</label>
+                <select name="id_apoderado" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                    <option value="">Sin apoderado asignado</option>
+                    @foreach($apoderados as $apoderado)
+                        <option value="{{ $apoderado->id_apoderado }}" {{ old('id_apoderado') == $apoderado->id_apoderado ? 'selected' : '' }}>
+                            {{ $apoderado->apellidos }}, {{ $apoderado->nombres }} @if($apoderado->dni) ({{ $apoderado->dni }}) @endif
+                        </option>
+                    @endforeach
+                </select>
+                @if($apoderados->isEmpty())
+                    <p class="text-xs text-gray-500 mt-1">No hay apoderados registrados. <a href="{{ route('apoderados.create') }}" class="text-blue-600 hover:underline">Registrar uno</a>.</p>
+                @endif
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Parentesco</label>
+                <select name="parentesco" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                    <option value="">Seleccionar</option>
+                    @foreach(['MADRE', 'PADRE', 'TUTOR', 'ABUELO_A', 'HERMANO_A', 'TIO_A', 'OTRO'] as $opcion)
+                        <option value="{{ $opcion }}" {{ old('parentesco') == $opcion ? 'selected' : '' }}>{{ $opcion }}</option>
+                    @endforeach
+                </select>
+            </div>
         </div>
 
         <div class="mt-8 flex justify-end gap-3">

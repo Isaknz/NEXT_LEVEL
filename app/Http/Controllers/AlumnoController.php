@@ -4,8 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\AlumnoRequest;
 use App\Models\Alumno;
-use App\Models\Nivel;
+use App\Models\Apoderado;
 use App\Models\Grado;
+use App\Models\Nivel;
 use App\Traits\RegistraMovimientos;
 use Illuminate\Http\Request;
 
@@ -35,8 +36,9 @@ class AlumnoController extends Controller
         }
         $niveles = Nivel::where('estado', 'ACTIVO')->get();
         $grados = Grado::with('nivel')->where('estado', 'ACTIVO')->orderBy('orden')->get();
+        $apoderados = Apoderado::orderBy('apellidos')->get();
 
-        return view('alumnos.create', compact('niveles', 'grados'));
+        return view('alumnos.create', compact('niveles', 'grados', 'apoderados'));
     }
 
     public function store(AlumnoRequest $request)
@@ -44,6 +46,8 @@ class AlumnoController extends Controller
         $validated = $request->validated();
 
         $alumno = Alumno::create($validated);
+
+        $this->vincularApoderado($alumno, $validated);
 
         // Registrar movimiento
         self::registrarMovimiento(
@@ -57,12 +61,13 @@ class AlumnoController extends Controller
         );
 
         return redirect()->route('alumnos.index')
-                        ->with('success', '¡Alumno creado exitosamente!');
+            ->with('success', '¡Alumno creado exitosamente!');
     }
 
     public function show(Alumno $alumno)
     {
         $alumno->load(['grado.nivel', 'apoderados', 'matriculas.periodo', 'matriculas.nivel']);
+
         return view('alumnos.show', compact('alumno'));
     }
 
@@ -73,8 +78,9 @@ class AlumnoController extends Controller
         }
         $niveles = Nivel::where('estado', 'ACTIVO')->get();
         $grados = Grado::with('nivel')->where('estado', 'ACTIVO')->orderBy('orden')->get();
+        $apoderados = Apoderado::orderBy('apellidos')->get();
 
-        return view('alumnos.edit', compact('alumno', 'niveles', 'grados'));
+        return view('alumnos.edit', compact('alumno', 'niveles', 'grados', 'apoderados'));
     }
 
     public function update(AlumnoRequest $request, Alumno $alumno)
@@ -88,6 +94,8 @@ class AlumnoController extends Controller
 
         $alumno->update($validated);
 
+        $this->vincularApoderado($alumno, $validated);
+
         // Registrar movimiento
         self::registrarMovimiento(
             'ACTUALIZAR',
@@ -100,7 +108,7 @@ class AlumnoController extends Controller
         );
 
         return redirect()->route('alumnos.index')
-                        ->with('success', '¡Alumno actualizado exitosamente!');
+            ->with('success', '¡Alumno actualizado exitosamente!');
     }
 
     public function destroy(Alumno $alumno)
@@ -127,6 +135,30 @@ class AlumnoController extends Controller
         );
 
         return redirect()->route('alumnos.index')
-                        ->with('success', '¡Alumno eliminado exitosamente!');
+            ->with('success', '¡Alumno eliminado exitosamente!');
+    }
+
+    /**
+     * Sincroniza el vínculo del alumno con su apoderado (campo directo y pivot).
+     */
+    private function vincularApoderado(Alumno $alumno, array $datos): void
+    {
+        $idApoderado = $datos['id_apoderado'] ?? null;
+
+        if (! $idApoderado) {
+            $alumno->apoderados()->detach();
+
+            return;
+        }
+
+        $parentesco = $datos['parentesco'] ?? 'TUTOR';
+
+        $alumno->apoderados()->sync([
+            $idApoderado => [
+                'parentesco' => $parentesco,
+                'es_principal' => true,
+                'autorizado_recojo' => true,
+            ],
+        ]);
     }
 }

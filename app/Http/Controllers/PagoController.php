@@ -4,13 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\AnulacionRequest;
 use App\Http\Requests\PagoRequest;
+use App\Models\Caja;
+use App\Models\ComprobantePago;
+use App\Models\CuentaPorCobrar;
+use App\Models\Matricula;
+use App\Models\MovimientoCaja;
 use App\Models\Pago;
 use App\Models\PagoDetalle;
-use App\Models\Matricula;
-use App\Models\Caja;
-use App\Models\CuentaPorCobrar;
-use App\Models\MovimientoCaja;
-use App\Models\ComprobantePago;
 use App\Traits\RegistraMovimientos;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -36,12 +36,12 @@ class PagoController extends Controller
         $stats = [
             'total' => Pago::where('estado', 'CONFIRMADO')->count(),
             'total_mes' => Pago::where('estado', 'CONFIRMADO')
-                              ->whereMonth('fecha_pago', now()->month)
-                              ->whereYear('fecha_pago', now()->year)
-                              ->sum('monto_total'),
+                ->whereMonth('fecha_pago', now()->month)
+                ->whereYear('fecha_pago', now()->year)
+                ->sum('monto_total'),
             'total_hoy' => Pago::where('estado', 'CONFIRMADO')
-                              ->whereDate('fecha_pago', today())
-                              ->sum('monto_total'),
+                ->whereDate('fecha_pago', today())
+                ->sum('monto_total'),
             'anulados' => Pago::where('estado', 'ANULADO')->count(),
         ];
 
@@ -50,20 +50,31 @@ class PagoController extends Controller
 
     public function create(Request $request)
     {
+        if (auth()->user()->role === 'cajero') {
+            $cajas = Caja::where('estado', 'ACTIVA')->get();
+
+            if ($cajas->isEmpty()) {
+                return redirect()->route('cajas.index')
+                    ->with('error', 'No hay ninguna caja abierta. Pide al administrador que aperture una.');
+            }
+        }
+
         $matriculaSeleccionada = null;
         if ($request->has('matricula') && $request->matricula != '') {
             $matriculaSeleccionada = Matricula::with(['alumno', 'cuentasPorCobrar'])
-                                              ->find($request->matricula);
+                ->find($request->matricula);
         }
 
         $cajas = Caja::where('estado', 'ACTIVA')->get();
 
-        $matriculas = Matricula::with(['alumno', 'cuentasPorCobrar.concepto'])
-                               ->whereIn('estado', ['ACTIVA', 'PENDIENTE'])
-                               ->whereHas('cuentasPorCobrar', function ($q) {
-                                   $q->whereIn('estado', ['PENDIENTE', 'PARCIAL']);
-                               })
-                               ->get();
+        $matriculas = Matricula::with(['alumno', 'cuentasPorCobrar' => function ($q) {
+            $q->whereIn('estado', ['PENDIENTE', 'PARCIAL']);
+        }, 'cuentasPorCobrar.concepto'])
+            ->whereIn('estado', ['ACTIVA', 'PENDIENTE'])
+            ->whereHas('cuentasPorCobrar', function ($q) {
+                $q->whereIn('estado', ['PENDIENTE', 'PARCIAL']);
+            })
+            ->get();
 
         return view('pagos.create', compact('cajas', 'matriculas', 'matriculaSeleccionada'));
     }
@@ -89,11 +100,27 @@ class PagoController extends Controller
                 ]);
             }
 
+            if (! in_array($cuenta->estado, ['PENDIENTE', 'PARCIAL'], true)) {
+                throw ValidationException::withMessages([
+                    'cuentas' => "La cuenta {$cuenta->referencia} ya está {$cuenta->estado} y no admite pagos.",
+                ]);
+            }
+
             if ($cuentaData['monto'] > $cuenta->monto_pendiente + 0.01) {
                 throw ValidationException::withMessages([
                     'cuentas' => "El monto para la cuenta {$cuenta->referencia} excede el saldo pendiente.",
                 ]);
             }
+        }
+
+        // La caja debe estar abierta: un pago contra una caja cerrada deja
+        // el arqueo de cierre desactualizado.
+        $caja = Caja::find($datos['id_caja']);
+
+        if (! $caja || $caja->estado !== 'ACTIVA') {
+            throw ValidationException::withMessages([
+                'id_caja' => 'La caja seleccionada no está abierta.',
+            ]);
         }
 
         $pago = null;
@@ -114,7 +141,15 @@ class PagoController extends Controller
                 ]);
 
                 foreach ($datos['cuentas'] as $cuentaData) {
-                    $cuenta = CuentaPorCobrar::find($cuentaData['id_cuenta']);
+                    // lockForUpdate evita que dos pagos simultáneos lean el
+                    // mismo saldo y sobrepasen la cuenta.
+                    $cuenta = CuentaPorCobrar::lockForUpdate()->find($cuentaData['id_cuenta']);
+
+                    if ($cuentaData['monto'] > $cuenta->monto_pendiente + 0.01) {
+                        throw ValidationException::withMessages([
+                            'cuentas' => "El saldo de la cuenta {$cuenta->referencia} cambió. Vuelve a intentarlo.",
+                        ]);
+                    }
 
                     PagoDetalle::create([
                         'id_pago' => $pago->id_pago,
@@ -132,7 +167,7 @@ class PagoController extends Controller
                     'id_pago' => $pago->id_pago,
                     'fecha_movimiento' => now(),
                     'monto' => $datos['monto_total'],
-                    'descripcion' => "Pago {$pago->codigo} - " . ($pago->matricula->alumno?->nombres ?? 'N/A') . ' ' . ($pago->matricula->alumno?->apellidos ?? ''),
+                    'descripcion' => "Pago {$pago->codigo} - ".($pago->matricula->alumno?->nombres ?? 'N/A').' '.($pago->matricula->alumno?->apellidos ?? ''),
                     'estado' => 'ACTIVO',
                     'registrado_por' => auth()->id(),
                 ]);
@@ -145,12 +180,13 @@ class PagoController extends Controller
                     'fecha_emision' => now(),
                 ]);
 
-                // La matricula queda PAGADA cuando no quedan cuentas pendientes ni parciales.
+                // La matrícula queda PAGADA cuando no quedan cuentas pendientes
+                // ni parciales. No se pisa un estado terminal (ANULADA/RETIRADA).
                 $quedanSaldo = $pago->matricula->cuentasPorCobrar()
                     ->whereIn('estado', ['PENDIENTE', 'PARCIAL'])
                     ->exists();
 
-                if (! $quedanSaldo) {
+                if (! $quedanSaldo && in_array($pago->matricula->estado, ['ACTIVA', 'PENDIENTE'], true)) {
                     $pago->matricula->update(['estado' => 'PAGADA']);
                 }
             });
@@ -176,8 +212,13 @@ class PagoController extends Controller
             $pago->toArray()
         );
 
-        return redirect()->route('pagos.show', $pago->id_pago)
-                        ->with('success', '¡Pago registrado exitosamente!');
+        // El cajero no tiene acceso a pagos.index ni pagos.show; se le
+        // devuelve al formulario para que pueda seguir cobrando.
+        $destino = auth()->user()->role === 'cajero'
+            ? redirect()->route('pagos.create')->with('success', "Pago {$pago->codigo} registrado exitosamente.")
+            : redirect()->route('pagos.show', $pago->id_pago)->with('success', '¡Pago registrado exitosamente!');
+
+        return $destino;
     }
 
     public function show(Pago $pago)
@@ -200,7 +241,8 @@ class PagoController extends Controller
     {
         $pago->load(['matricula.alumno', 'matricula.nivel', 'matricula.alumno.apoderado', 'detalles.cuentaPorCobrar.concepto']);
         $pdf = PDF::loadView('pagos.comprobante', compact('pago'));
-        return $pdf->stream('comprobante-pago-' . $pago->codigo . '.pdf');
+
+        return $pdf->stream('comprobante-pago-'.$pago->codigo.'.pdf');
     }
 
     public function anular(AnulacionRequest $request, Pago $pago)
@@ -232,8 +274,20 @@ class PagoController extends Controller
                     $detalle->cuentaPorCobrar?->recalcularEstado();
                 }
 
+                // Si al quitar este pago vuelven a quedar cuentas por cobrar,
+                // la matrícula deja de estar PAGADA.
+                if ($pago->matricula->estado === 'PAGADA') {
+                    $quedanSaldo = $pago->matricula->cuentasPorCobrar()
+                        ->whereIn('estado', ['PENDIENTE', 'PARCIAL'])
+                        ->exists();
+
+                    if ($quedanSaldo) {
+                        $pago->matricula->update(['estado' => 'ACTIVA']);
+                    }
+                }
+
                 MovimientoCaja::where('id_pago', $pago->id_pago)
-                              ->update(['estado' => 'ANULADO']);
+                    ->update(['estado' => 'ANULADO']);
 
                 if ($pago->comprobante) {
                     $pago->comprobante->delete();
@@ -262,7 +316,7 @@ class PagoController extends Controller
         );
 
         return redirect()->route('pagos.index')
-                        ->with('success', '¡Pago anulado exitosamente!');
+            ->with('success', '¡Pago anulado exitosamente!');
     }
 
     public function destroy(Pago $pago)
@@ -273,6 +327,7 @@ class PagoController extends Controller
         if (auth()->user()->role === 'cajero') {
             return back()->withErrors(['error' => 'Sin permisos para eliminar pagos']);
         }
+
         return back()->withErrors(['error' => 'Para eliminar un pago, primero debe anularlo.']);
     }
 }

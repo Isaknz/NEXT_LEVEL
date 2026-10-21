@@ -22,7 +22,6 @@ class ApoderadoRequest extends FormRequest
                 'string',
                 'size:8',
                 Rule::unique('apoderados', 'dni')
-                    ->whereNull('deleted_at')
                     ->ignore($apoderado?->id_apoderado, 'id_apoderado'),
             ],
             'nombres' => 'required|string|max:100',

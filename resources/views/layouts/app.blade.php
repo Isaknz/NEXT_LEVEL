@@ -8,14 +8,14 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @stack('styles')
 </head>
-<body class="bg-gray-100">
+<body class="bg-gray-100" x-data="{ open: window.innerWidth >= 1024 }">
     <!-- SIDEBAR -->
-    <aside x-data="{ open: true }"
-           class="fixed left-0 top-0 h-full w-64 bg-blue-950 text-white z-40 transform -translate-x-full transition-transform duration-300 ease-in-out overflow-y-auto lg:translate-x-0"
-           :class="open ? 'translate-x-0' : '-translate-x-full'"
+    <aside
+           class="fixed left-0 top-0 h-full w-64 bg-blue-950 text-white z-40 transition-transform duration-300 ease-in-out flex flex-col"
+           :style="open ? 'transform: translateX(0)' : 'transform: translateX(-100%)'"
            id="sidebar">
         <!-- Logo -->
-        <div class="flex items-center justify-between px-4 py-4 border-b border-blue-800">
+        <div class="flex items-center justify-between px-4 py-4 border-b border-blue-800 shrink-0">
             <div class="flex items-center space-x-2">
                 <x-application-logo class="h-9 w-9 text-white" />
                 <div>
@@ -29,7 +29,7 @@
         </div>
 
         <!-- NavegaciÃ³n -->
-        <nav class="px-2 py-3 space-y-1" class="space-y-1">
+        <nav class="px-2 py-3 space-y-1 flex-1 overflow-y-auto">
             <!-- Dashboard -->
             <a href="{{ route('dashboard') }}" class="flex items-center px-3 py-2.5 text-sm rounded-lg hover:bg-blue-900 {{ request()->routeIs('dashboard') ? 'bg-blue-900 text-white' : 'text-blue-200' }}">
                 <i class="fas fa-home w-5"></i>
@@ -172,11 +172,11 @@
         </nav>
 
         <!-- Usuario -->
-        <div class="absolute bottom-0 left-0 right-0 border-t border-blue-800 p-3">
+        <div class="border-t border-blue-800 p-3 shrink-0">
             <div class="flex items-center px-2">
-                <div class="w-8 h-8 rounded-full bg-blue-700 flex items-center justify-center text-xs font-bold">
-                    {{ substr(auth()->user()->nombre, 0, 1) }}
-                </div>
+                <a href="{{ route('profile.edit') }}" class="w-8 h-8 rounded-full bg-blue-700 flex items-center justify-center text-xs font-bold hover:bg-blue-600" title="Mi perfil">
+                    {{ mb_substr(auth()->user()->nombre, 0, 1) }}
+                </a>
                 <div class="ms-3 flex-1 min-w-0">
                     <p class="text-sm font-semibold truncate">{{ auth()->user()->nombre }}</p>
                     <span class="text-[10px] bg-blue-700 px-1.5 py-0.5 rounded-full capitalize">
@@ -185,7 +185,7 @@
                 </div>
                 <form method="POST" action="{{ route('logout') }}" class="ml-1">
                     @csrf
-                    <button type="submit" class="text-blue-300 hover:text-red-400 text-xs" title="Cerrar sesiÃ³n">
+                    <button type="submit" class="text-blue-300 hover:text-red-400 text-xs" title="Cerrar sesión">
                         <i class="fas fa-sign-out-alt"></i>
                     </button>
                 </form>
@@ -195,9 +195,10 @@
 
     <!-- OVERLAY MÃ“VIL -->
     <div x-show="open"
+         x-cloak
          x-transition.opacity
          @click="open = false"
-         class="fixed inset-0 bg-black/50 z-30 lg:hidden"
+         class="fixed inset-0 bg-black/50 z-30"
          id="sidebar-overlay"></div>
 
     <!-- CONTENIDO PRINCIPAL -->
@@ -283,19 +284,6 @@
     </div>
 
     <script>
-        // Toggle sidebar en mÃ³vil
-        document.addEventListener('DOMContentLoaded', function() {
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.getElementById('sidebar-overlay');
-            if (sidebar && overlay) {
-                window.__toggleSidebar = function() {
-                    sidebar.classList.toggle('translate-x-0');
-                    sidebar.classList.toggle('-translate-x-full');
-                    overlay.classList.toggle('hidden');
-                };
-            }
-        });
-
         setTimeout(function() {
             document.querySelectorAll('.bg-green-50, .bg-red-50, .bg-blue-50').forEach(function(el) {
                 el.style.transition = 'opacity 0.5s';

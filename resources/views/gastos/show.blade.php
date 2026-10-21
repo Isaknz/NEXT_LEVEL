@@ -16,20 +16,22 @@
             <a href="{{ route('gastos.edit', $gasto->id_gasto) }}" class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg text-sm shadow">
                 <i class="fas fa-edit mr-1"></i> Editar
             </a>
-            <form method="POST" action="{{ route('gastos.anular', $gasto->id_gasto) }}" 
+            <form method="POST" action="{{ route('gastos.anular', $gasto->id_gasto) }}"
                   x-data="{ confirmDelete: false }" class="inline">
                 @csrf
-                @method('DELETE')
                 <button type="button" @click="confirmDelete = true"
                         class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm shadow">
                     <i class="fas fa-ban mr-1"></i> Anular
                 </button>
                 <div x-show="confirmDelete" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-                    <div class="bg-white rounded-lg p-6 max-w-sm">
-                        <p class="font-semibold">¿Seguro que deseas anular el gasto {{ $gasto->codigo }}?</p>
-                        <div class="mt-4 flex gap-2">
-                            <button @click="confirmDelete = false" class="btn-secondary rounded px-3 py-1">Cancelar</button>
-                            <button type="submit" @click="confirmDelete = false" class="bg-red-500 hover:bg-red-600 text-white rounded px-3 py-1">Confirmar</button>
+                    <div class="bg-white rounded-lg p-6 max-w-sm w-full">
+                        <p class="font-semibold mb-3">¿Seguro que deseas anular el gasto {{ $gasto->codigo }}?</p>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Motivo de anulación *</label>
+                        <input type="text" name="motivo_anulacion" required maxlength="255"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500">
+                        <div class="mt-4 flex gap-2 justify-end">
+                            <button type="button" @click="confirmDelete = false" class="btn-secondary rounded px-3 py-1">Cancelar</button>
+                            <button type="submit" class="bg-red-500 hover:bg-red-600 text-white rounded px-3 py-1">Confirmar</button>
                         </div>
                     </div>
                 </div>

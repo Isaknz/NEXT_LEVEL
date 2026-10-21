@@ -123,4 +123,40 @@ class DashboardTest extends TestCase
 
         $response->assertStatus(200);
     }
+
+    public function test_dashboard_filtra_ingresos_por_fechas(): void
+    {
+        $user = User::factory()->create(['role' => 'admin']);
+        $this->actingAs($user);
+
+        $matricula = Matricula::factory()->create();
+        $caja = Caja::factory()->create();
+
+        Pago::create([
+            'codigo' => 'PAG-D-ANT',
+            'id_matricula' => $matricula->id_matricula,
+            'id_caja' => $caja->id_caja,
+            'fecha_pago' => now()->subYear(),
+            'metodo_pago' => 'EFECTIVO',
+            'monto_total' => 500,
+            'estado' => 'CONFIRMADO',
+            'registrado_por' => $user->id,
+        ]);
+        Pago::create([
+            'codigo' => 'PAG-D-HOY',
+            'id_matricula' => $matricula->id_matricula,
+            'id_caja' => $caja->id_caja,
+            'fecha_pago' => now(),
+            'metodo_pago' => 'EFECTIVO',
+            'monto_total' => 200,
+            'estado' => 'CONFIRMADO',
+            'registrado_por' => $user->id,
+        ]);
+
+        $desde = now()->startOfMonth()->format('Y-m-d');
+        $response = $this->get('/dashboard?desde='.$desde);
+
+        $response->assertStatus(200);
+        $this->assertEquals(200, $response->viewData('total_ingresos'));
+    }
 }

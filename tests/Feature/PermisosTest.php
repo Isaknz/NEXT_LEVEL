@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Caja;
 use App\Models\User;
 use App\Support\Permisos;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -92,6 +93,12 @@ class PermisosTest extends TestCase
     public function test_el_middleware_permite_las_rutas_del_cajero(): void
     {
         $this->actingAs(User::factory()->cajero()->create());
+
+        // Sin caja abierta, pagos.create redirige a cajas.index (comportamiento válido).
+        $this->get('/pagos/create')->assertRedirect('/cajas');
+
+        // Con una caja abierta, el cajero sí accede al formulario de cobro.
+        Caja::factory()->create(['estado' => 'ACTIVA']);
 
         $this->get('/cajas')->assertOk();
         $this->get('/pagos/create')->assertOk();
