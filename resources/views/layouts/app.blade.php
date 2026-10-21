@@ -8,11 +8,11 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @stack('styles')
 </head>
-<body class="bg-gray-100" x-data="{ open: window.innerWidth >= 1024 }">
+<body class="bg-gray-100" x-data="{ open: true }">
     <!-- SIDEBAR -->
     <aside
-           class="fixed left-0 top-0 h-full w-64 bg-blue-950 text-white z-40 transition-transform duration-300 ease-in-out flex flex-col"
-           :style="open ? 'transform: translateX(0)' : 'transform: translateX(-100%)'"
+           class="fixed left-0 top-0 h-full w-64 bg-blue-950 text-white z-40 transform lg:translate-x-0 transition-transform duration-200 ease-in-out flex flex-col"
+           :class="{ '-translate-x-full': !open, 'translate-x-0': open }"
            id="sidebar">
         <!-- Logo -->
         <div class="flex items-center justify-between px-4 py-4 border-b border-blue-800 shrink-0">
@@ -28,7 +28,7 @@
             </button>
         </div>
 
-        <!-- NavegaciÃ³n -->
+        <!-- Navegaci�n -->
         <nav class="px-2 py-3 space-y-1 flex-1 overflow-y-auto">
             <!-- Dashboard -->
             <a href="{{ route('dashboard') }}" class="flex items-center px-3 py-2.5 text-sm rounded-lg hover:bg-blue-900 {{ request()->routeIs('dashboard') ? 'bg-blue-900 text-white' : 'text-blue-200' }}">
@@ -52,13 +52,10 @@
             </a>
             @endif
 
-            <!-- MatrÃ­culas -->
-            @if(Route::has('matriculas.index') && auth()->user()->puedeVerModulo('matriculas'))
             <a href="{{ route('matriculas.index') }}" class="flex items-center px-3 py-2.5 text-sm rounded-lg hover:bg-blue-900 {{ request()->routeIs('matriculas.*') ? 'bg-blue-900 text-white' : 'text-blue-200' }}">
                 <i class="fas fa-file-invoice w-5"></i>
-                <span class="ms-3">MatrÃ­culas</span>
+                <span class="ms-3">Matrículas</span>
             </a>
-            @endif
 
             <!-- Cuentas por Cobrar -->
             @if(Route::has('cuentas-por-cobrar.index') && auth()->user()->puedeVerModulo('cuentas-por-cobrar'))
@@ -103,12 +100,12 @@
             </a>
             @endif
 
-            <!-- ConfiguraciÃ³n (colapsable) -->
+            <!-- Configuración (colapsable) -->
             @if((Route::has('periodos.index') && auth()->user()->puedeVerModulo('periodos')) || (Route::has('niveles.index') && auth()->user()->puedeVerModulo('niveles')))
             <div x-data="{ configOpen: false }" class="space-y-1">
                 <button @click="configOpen = !configOpen" class="w-full flex items-center px-3 py-2.5 text-sm rounded-lg hover:bg-blue-900 text-blue-200">
                     <i class="fas fa-cog w-5"></i>
-                    <span class="ms-3 flex-1 text-left">ConfiguraciÃ³n</span>
+                    <span class="ms-3 flex-1 text-left">Configuración
                     <i x-show="!configOpen" class="fas fa-chevron-down text-xs"></i>
                     <i x-show="configOpen" class="fas fa-chevron-up text-xs"></i>
                 </button>
@@ -143,9 +140,9 @@
                         <i class="fas fa-tags w-4"></i><span class="ms-2">Conceptos</span>
                     </a>
                     @endif
-                    @if(Route::has('categorias.index') && auth()->user()->puedeVerModulo('categorias'))
-                    <a href="{{ route('categorias.index') }}" class="flex items-center px-3 py-2 text-sm rounded-lg hover:bg-blue-900 text-blue-300 {{ request()->is('categorias*') ? 'bg-blue-900 text-white' : '' }}">
-                        <i class="fas fa-folder w-4"></i><span class="ms-2">CategorÃ­as</span>
+                    @if(Route::has('Categorías
+                    <a href="{{ route('Categorías ? 'bg-blue-900 text-white' : '' }}">
+                        <i class="fas fa-folder w-4"></i><span class="ms-2">Categorías</span>
                     </a>
                     @endif
                     @if(Route::has('cajas.index') && auth()->user()->puedeVerModulo('cajas'))
@@ -162,11 +159,11 @@
             </div>
             @endif
 
-            <!-- AuditorÃ­a -->
-            @if((auth()->user()->role === 'admin' || auth()->user()->role === 'gerente') && Route::has('auditoria.index'))
-            <a href="{{ route('auditoria.index') }}" class="flex items-center px-3 py-2.5 text-sm rounded-lg hover:bg-blue-900 {{ request()->routeIs('auditoria.*') ? 'bg-blue-900 text-white' : 'text-blue-200' }}">
+            <!-- Auditoría -->
+            @if((auth()->user()->role === 'admin' || auth()->user()->role === 'gerente') && Route::has('Auditoría
+            <a href="{{ route('Auditoría ? 'bg-blue-900 text-white' : 'text-blue-200' }}">
                 <i class="fas fa-history w-5"></i>
-                <span class="ms-3">AuditorÃ­a</span>
+                <span class="ms-3">Auditoría
             </a>
             @endif
         </nav>
@@ -185,7 +182,7 @@
                 </div>
                 <form method="POST" action="{{ route('logout') }}" class="ml-1">
                     @csrf
-                    <button type="submit" class="text-blue-300 hover:text-red-400 text-xs" title="Cerrar sesión">
+                    <button type="submit" class="text-blue-300 hover:text-red-400 text-xs" title="Cerrar sesi�n">
                         <i class="fas fa-sign-out-alt"></i>
                     </button>
                 </form>
@@ -193,12 +190,11 @@
         </div>
     </aside>
 
-    <!-- OVERLAY MÃ“VIL -->
+    <!-- OVERLAY MÓVIL -->
     <div x-show="open"
          x-cloak
-         x-transition.opacity
          @click="open = false"
-         class="fixed inset-0 bg-black/50 z-30"
+         class="fixed inset-0 bg-black/50 z-30 lg:hidden"
          id="sidebar-overlay"></div>
 
     <!-- CONTENIDO PRINCIPAL -->
@@ -207,7 +203,7 @@
         <header class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-30">
             <div class="flex items-center justify-between px-4 py-3">
                 <div class="flex items-center space-x-3">
-                    <!-- BotÃ³n toggle sidebar -->
+                    <!-- Bot�n toggle sidebar -->
                     <button @click="open = !open" class="text-gray-600 hover:text-blue-700 p-1">
                         <i class="fas fa-bars text-lg"></i>
                     </button>
@@ -278,7 +274,7 @@
         <!-- Footer -->
         <footer class="bg-white border-t border-gray-200 py-4 mt-6">
             <div class="container mx-auto px-4 text-center text-sm text-gray-500">
-                <p>Â© {{ date('Y') }} Next Level School â€” Sistema de GestiÃ³n Educativa. Todos los derechos reservados.</p>
+                <p>� {{ date('Y') }} Next Level School � Sistema de Gesti�n Educativa. Todos los derechos reservados.</p>
             </div>
         </footer>
     </div>
@@ -296,3 +292,5 @@
     @stack('scripts')
 </body>
 </html>
+
+
