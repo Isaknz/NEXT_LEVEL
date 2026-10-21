@@ -140,8 +140,8 @@
                         <i class="fas fa-tags w-4"></i><span class="ms-2">Conceptos</span>
                     </a>
                     @endif
-                    @if(Route::has('Categorías
-                    <a href="{{ route('Categorías ? 'bg-blue-900 text-white' : '' }}">
+                    @if(Route::has('categorias.index') && auth()->user()->puedeVerModulo('categorias'))
+                    <a href="{{ route('categorias.index') }}" class="flex items-center px-3 py-2 text-sm rounded-lg hover:bg-blue-900 text-blue-300 {{ request()->is('categorias*') ? 'bg-blue-900 text-white' : '' }}">
                         <i class="fas fa-folder w-4"></i><span class="ms-2">Categorías</span>
                     </a>
                     @endif
@@ -160,10 +160,10 @@
             @endif
 
             <!-- Auditoría -->
-            @if((auth()->user()->role === 'admin' || auth()->user()->role === 'gerente') && Route::has('Auditoría
-            <a href="{{ route('Auditoría ? 'bg-blue-900 text-white' : 'text-blue-200' }}">
+            @if((auth()->user()->role === 'admin' || auth()->user()->role === 'gerente') && Route::has('auditoria.index'))
+            <a href="{{ route('auditoria.index') }}" class="flex items-center px-3 py-2.5 text-sm rounded-lg hover:bg-blue-900 {{ request()->routeIs('auditoria.*') ? 'bg-blue-900 text-white' : 'text-blue-200' }}">
                 <i class="fas fa-history w-5"></i>
-                <span class="ms-3">Auditoría
+                <span class="ms-3">Auditoría</span>
             </a>
             @endif
         </nav>

@@ -53,7 +53,7 @@
                     </p>
                 @endif
 
-                <select name="id_alumno" id="id_alumno" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white" {{ $alumnos->isEmpty() ? 'disabled' : '' }}>
+                <select name="id_alumno" id="id_alumno" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
                     <option value="">— Registrar un alumno nuevo —</option>
                     @foreach($alumnos as $alumno)
                         <option value="{{ $alumno->id_alumno }}"
