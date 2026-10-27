@@ -274,7 +274,7 @@
         <!-- Footer -->
         <footer class="bg-white border-t border-gray-200 py-4 mt-6">
             <div class="container mx-auto px-4 text-center text-sm text-gray-500">
-                <p>� {{ date('Y') }} Next Level School � Sistema de Gesti�n Educativa. Todos los derechos reservados.</p>
+                <p> {{ date('Y') }} Next Level School  Sistema de Gestión Educativa. Todos los derechos reservados.</p>
             </div>
         </footer>
     </div>
