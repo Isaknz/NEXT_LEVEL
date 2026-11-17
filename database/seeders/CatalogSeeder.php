@@ -65,9 +65,9 @@ class CatalogSeeder extends Seeder
         }
 
         $conceptos = [
-            ['codigo' => 'MATRICULA', 'nombre' => 'Matrícula', 'tipo' => 'MATRICULA', 'modalidad_aplicable' => 'AMBOS'],
-            ['codigo' => 'MENSUALIDAD', 'nombre' => 'Mensualidad', 'tipo' => 'MENSUALIDAD', 'modalidad_aplicable' => 'ESCOLAR'],
-            ['codigo' => 'PENSION_CICLO', 'nombre' => 'Pensión por ciclo', 'tipo' => 'CICLO', 'modalidad_aplicable' => 'ACADEMIA'],
+            ['codigo' => 'MATRICULA', 'nombre' => 'Matrícula', 'tipo' => 'MATRICULA', 'modalidad_aplicable' => 'AMBOS', 'monto_referencial' => 500],
+            ['codigo' => 'MENSUALIDAD', 'nombre' => 'Mensualidad', 'tipo' => 'MENSUALIDAD', 'modalidad_aplicable' => 'ESCOLAR', 'monto_referencial' => 350],
+            ['codigo' => 'PENSION_CICLO', 'nombre' => 'Pensión por ciclo', 'tipo' => 'CICLO', 'modalidad_aplicable' => 'ACADEMIA', 'monto_referencial' => 1500],
             ['codigo' => 'MATERIAL', 'nombre' => 'Materiales', 'tipo' => 'MATERIAL', 'modalidad_aplicable' => 'AMBOS'],
             ['codigo' => 'EXAMEN', 'nombre' => 'Exámenes', 'tipo' => 'EXAMEN', 'modalidad_aplicable' => 'AMBOS'],
         ];
@@ -75,7 +75,7 @@ class CatalogSeeder extends Seeder
         foreach ($conceptos as $concepto) {
             ConceptoCobro::firstOrCreate(
                 ['codigo' => $concepto['codigo']],
-                ['monto_referencial' => 0, 'estado' => 'ACTIVO'] + $concepto
+                ['estado' => 'ACTIVO', 'monto_referencial' => 0] + $concepto
             );
         }
 
