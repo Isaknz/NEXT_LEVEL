@@ -492,7 +492,6 @@ class CatalogosCrudTest extends TestCase
             'fecha_inicio' => '2026-03-01',
             'fecha_fin' => '2026-08-31',
             'monto_referencial' => '1200.00',
-            'vacantes' => 30,
             'estado' => 'ABIERTO',
         ])->assertRedirect(route('ciclos.index'));
 
@@ -501,7 +500,6 @@ class CatalogosCrudTest extends TestCase
             'id_facultad' => $facultad->id_facultad,
             'nombre' => 'Ciclo de Programación',
             'turno' => 'NOCHE',
-            'vacantes' => 30,
             'estado' => 'ABIERTO',
         ]);
     }
