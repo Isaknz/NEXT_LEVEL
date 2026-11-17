@@ -58,7 +58,7 @@
                     @foreach($alumnos as $alumno)
                         <option value="{{ $alumno->id_alumno }}"
                                 data-codigo="{{ $alumno->codigo }}"
-                                data-modalidad="{{ ($alumno->modalidad ?? 'ESCOLAR') === 'ACADEMIA' ? 'ACADEMIA' : 'ESCOLAR' }}"
+                                data-modalidad="{{ ($alumno->modalidad ?? 'ESCOLAR') === 'ACADEMIA' ? 'ACADEMIA' : 'ESCOLAR' }}" data-ciclo="{{ $alumno->id_ciclo ?? '' }}"
                                 {{ old('id_alumno') == $alumno->id_alumno ? 'selected' : '' }}>
                             {{ $alumno->apellidos }}, {{ $alumno->nombres }} - DNI: {{ $alumno->dni ?? 'N/A' }}
                         </option>
@@ -301,6 +301,12 @@
                 if (modalidad === 'ACADEMIA') {
                     const nivelAcademia = Array.from(nivelSelect.options).find(function(o) { return o.dataset.codigo === 'ACA'; });
                     if (nivelAcademia) nivelSelect.value = nivelAcademia.value;
+
+                    const cicloAlumno = selectedOption.getAttribute('data-ciclo');
+                    if (cicloAlumno) {
+                        const cicloSelect = document.querySelector('#campo-ciclo select');
+                        if (cicloSelect) cicloSelect.value = cicloAlumno;
+                    }
                 }
             }
 

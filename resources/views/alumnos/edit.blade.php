@@ -170,6 +170,20 @@
                     </select>
                 </div>
 
+                <div id="campo-ciclo" class="{{ ($alumno->modalidad ?? 'ESCOLAR') === 'ACADEMIA' ? '' : 'hidden' }}">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        <i class="fas fa-sync-alt text-blue-500 mr-1"></i>Ciclo que cursa
+                    </label>
+                    <select name="id_ciclo" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white transition">
+                        <option value="">Sin ciclo asignado</option>
+                        @foreach($ciclos as $ciclo)
+                            <option value="{{ $ciclo->id_ciclo }}" {{ old('id_ciclo', $alumno->id_ciclo) == $ciclo->id_ciclo ? 'selected' : '' }}>
+                                {{ $ciclo->nombre }}@if($ciclo->facultad) - {{ $ciclo->facultad->nombre }}@endif ({{ $ciclo->periodo->nombre ?? '' }})
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
                 <!-- Estado -->
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">
@@ -232,14 +246,26 @@ document.addEventListener('DOMContentLoaded', function() {
     const modalidad = document.getElementById('modalidad');
     const gradoSelect = document.querySelector('select[name="id_grado"]');
     const campoGrado = gradoSelect ? gradoSelect.closest('div') : null;
+    const cicloSelect = document.querySelector('select[name="id_ciclo"]');
+    const campoCiclo = cicloSelect ? cicloSelect.closest('div') : null;
 
     function toggle() {
         const esAcademia = modalidad.value === 'ACADEMIA';
         if (campoGrado) campoGrado.classList.toggle('hidden', esAcademia);
-        if (esAcademia) {
+        if (campoCiclo) {
+            campoCiclo.classList.toggle('hidden', !esAcademia);
+            if (esAcademia) {
+                if (gradoSelect) { gradoSelect.value = ''; gradoSelect.disabled = true; }
+                cicloSelect.disabled = false;
+            } else {
+                if (gradoSelect) gradoSelect.disabled = false;
+                cicloSelect.value = '';
+                cicloSelect.disabled = true;
+            }
+        } else if (esAcademia && gradoSelect) {
             gradoSelect.value = '';
             gradoSelect.disabled = true;
-        } else {
+        } else if (gradoSelect) {
             gradoSelect.disabled = false;
         }
     }

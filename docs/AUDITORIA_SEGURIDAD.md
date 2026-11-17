@@ -214,3 +214,13 @@ middleware consultan la misma clase, por lo que no pueden divergir.
   `MENSUALIDAD` → ESCOLAR; `PENSION_CICLO` (tipo CICLO) → ACADEMIA.
   Regla de negocio: todos pagan matrícula; P/S mensualidad; academia por ciclo.
 - Eliminado `app/Models/AlumnoAcademia.php` (modelo huérfano sin tabla).
+
+### Ciclo del alumno de academia
+
+- `alumnos.id_ciclo` (migración `2026_11_17_103628`): el alumno de academia
+  puede registrar el ciclo que cursa al crear/editar su ficha. Es opcional;
+  el ciclo definitivo se confirma en la matrícula (`id_ciclo` de
+  `matriculas`). El formulario de matrícula preselecciona el ciclo del
+  alumno cuando existe.
+- Coherencia: ESCOLAR usa `id_grado` (ciclo se limpia), ACADEMIA usa
+  `id_ciclo` (grado se limpia) — `AlumnoController::limpiarCamposPorModalidad`.

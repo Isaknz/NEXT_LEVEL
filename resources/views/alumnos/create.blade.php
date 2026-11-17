@@ -87,6 +87,19 @@
                 <p class="text-xs text-gray-500 mt-1 hidden" id="nota-grado">Los alumnos de academia no tienen grado escolar; su nivel se define en la matrícula (ciclo).</p>
             </div>
 
+            <div id="campo-ciclo" class="hidden">
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Ciclo que cursa</label>
+                <select name="id_ciclo" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                    <option value="">Sin ciclo asignado</option>
+                    @foreach($ciclos as $ciclo)
+                        <option value="{{ $ciclo->id_ciclo }}" {{ old('id_ciclo') == $ciclo->id_ciclo ? 'selected' : '' }}>
+                            {{ $ciclo->nombre }}@if($ciclo->facultad) - {{ $ciclo->facultad->nombre }}@endif ({{ $ciclo->periodo->nombre ?? '' }})
+                        </option>
+                    @endforeach
+                </select>
+                <p class="text-xs text-gray-500 mt-1">Opcional: el ciclo también se elige al matricular.</p>
+            </div>
+
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">Celular</label>
                 <input type="text" name="celular" value="{{ old('celular') }}" placeholder="999888777"
@@ -154,18 +167,24 @@
 document.addEventListener('DOMContentLoaded', function() {
     const modalidad = document.getElementById('modalidad');
     const campoGrado = document.getElementById('campo-grado');
+    const campoCiclo = document.getElementById('campo-ciclo');
     const gradoSelect = campoGrado.querySelector('select');
+    const cicloSelect = campoCiclo.querySelector('select');
     const notaGrado = document.getElementById('nota-grado');
 
     function toggle() {
         const esAcademia = modalidad.value === 'ACADEMIA';
         campoGrado.classList.toggle('hidden', esAcademia);
+        campoCiclo.classList.toggle('hidden', !esAcademia);
         notaGrado.classList.toggle('hidden', !esAcademia);
         if (esAcademia) {
             gradoSelect.value = '';
             gradoSelect.disabled = true;
+            cicloSelect.disabled = false;
         } else {
             gradoSelect.disabled = false;
+            cicloSelect.value = '';
+            cicloSelect.disabled = true;
         }
     }
 
