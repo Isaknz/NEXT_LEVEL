@@ -10,12 +10,65 @@
     <p class="text-gray-600 mt-2">Resumen general del sistema</p>
 </div>
 
+<!-- Acciones rápidas según rol -->
+@php
+    $rol = auth()->user()->role;
+    $acciones = match($rol) {
+        'cajero' => [
+            ['route' => 'pagos.create', 'label' => 'Registrar pago', 'icon' => 'fa-cash-register', 'color' => 'bg-green-600'],
+            ['route' => 'gastos.create', 'label' => 'Registrar gasto', 'icon' => 'fa-receipt', 'color' => 'bg-red-600'],
+            ['route' => 'cajas.index', 'label' => 'Ver cajas', 'icon' => 'fa-cash-register', 'color' => 'bg-blue-600'],
+        ],
+        'secretaria' => [
+            ['route' => 'matriculas.create', 'label' => 'Nueva matrícula', 'icon' => 'fa-file-signature', 'color' => 'bg-indigo-600'],
+            ['route' => 'alumnos.create', 'label' => 'Nuevo alumno', 'icon' => 'fa-user-plus', 'color' => 'bg-blue-600'],
+            ['route' => 'pagos.create', 'label' => 'Registrar pago', 'icon' => 'fa-cash-register', 'color' => 'bg-green-600'],
+        ],
+        default => [
+            ['route' => 'matriculas.create', 'label' => 'Nueva matrícula', 'icon' => 'fa-file-signature', 'color' => 'bg-indigo-600'],
+            ['route' => 'pagos.create', 'label' => 'Registrar pago', 'icon' => 'fa-cash-register', 'color' => 'bg-green-600'],
+            ['route' => 'alumnos.create', 'label' => 'Nuevo alumno', 'icon' => 'fa-user-plus', 'color' => 'bg-blue-600'],
+            ['route' => 'usuarios.create', 'label' => 'Nuevo usuario', 'icon' => 'fa-user-shield', 'color' => 'bg-purple-600'],
+        ],
+    };
+@endphp
+@if(count($acciones))
+<div class="flex flex-wrap gap-3 mb-8">
+    @foreach($acciones as $accion)
+        @can($accion['route'])
+        <a href="{{ route($accion['route']) }}" class="{{ $accion['color'] }} hover:opacity-90 text-white px-5 py-2.5 rounded-lg text-sm font-semibold shadow transition flex items-center gap-2">
+            <i class="fas {{ $accion['icon'] }}"></i> {{ $accion['label'] }}
+        </a>
+        @endcan
+    @endforeach
+</div>
+@endif
+
+<!-- Resumen del día -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <div class="stat-card bg-white rounded-xl shadow p-5 border-l-4 border-blue-500">
+        <p class="text-sm text-gray-500">Pagos hoy</p>
+        <p class="text-2xl font-bold text-gray-800">{{ $pagos_hoy ?? 0 }} <span class="text-sm font-normal text-gray-500">registros</span></p>
+        <p class="text-sm text-green-600 font-semibold">S/. {{ number_format($ingresos_hoy ?? 0, 2) }}</p>
+    </div>
+    <div class="stat-card bg-white rounded-xl shadow p-5 border-l-4 border-red-500">
+        <p class="text-sm text-gray-500">Gastos hoy</p>
+        <p class="text-2xl font-bold text-red-600">S/. {{ number_format($gastos_hoy ?? 0, 2) }}</p>
+    </div>
+    <div class="stat-card bg-white rounded-xl shadow p-5 border-l-4 border-orange-500">
+        <p class="text-sm text-gray-500">Cuentas vencidas</p>
+        <p class="text-2xl font-bold text-orange-600">{{ $total_vencidos ?? 0 }}</p>
+        <a href="{{ route('cuentas-por-cobrar.index', ['vencidas' => 1]) }}" class="text-xs text-blue-600 hover:underline">Ver vencidas →</a>
+    </div>
+</div>
+
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
     <div class="stat-card bg-white rounded-xl shadow p-6">
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-sm text-gray-500">Total Alumnos</p>
                 <p class="text-3xl font-bold text-gray-800">{{ $total_alumnos ?? \App\Models\Alumno::count() }}</p>
+                <a href="{{ route('alumnos.index') }}" class="text-xs text-blue-600 hover:underline">Ver todos →</a>
             </div>
             <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
                 <i class="fas fa-user-graduate text-blue-600 text-xl"></i>
@@ -78,6 +131,7 @@
             <div>
                 <p class="text-sm text-gray-500">Deudores</p>
                 <p class="text-3xl font-bold text-orange-600">{{ $total_deudores ?? 0 }}</p>
+                <a href="{{ route('cuentas-por-cobrar.index') }}" class="text-xs text-blue-600 hover:underline">Ver cuentas →</a>
             </div>
             <div class="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
                 <i class="fas fa-exclamation-triangle text-orange-600 text-xl"></i>
@@ -90,6 +144,7 @@
             <div>
                 <p class="text-sm text-gray-500">Pagos Vencidos</p>
                 <p class="text-3xl font-bold text-red-600">{{ $total_vencidos ?? 0 }}</p>
+                <a href="{{ route('cuentas-por-cobrar.index', ['vencidas' => 1]) }}" class="text-xs text-blue-600 hover:underline">Ver vencidas →</a>
             </div>
             <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
                 <i class="fas fa-clock text-red-600 text-xl"></i>
@@ -102,6 +157,7 @@
             <div>
                 <p class="text-sm text-gray-500">Matrículas Activas</p>
                 <p class="text-3xl font-bold text-blue-600">{{ $matriculas_activas ?? \App\Models\Matricula::where('estado', 'ACTIVA')->count() }}</p>
+                <a href="{{ route('matriculas.index') }}" class="text-xs text-blue-600 hover:underline">Ver matrículas →</a>
             </div>
             <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
                 <i class="fas fa-file-invoice text-blue-600 text-xl"></i>
