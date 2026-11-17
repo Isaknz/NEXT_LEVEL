@@ -18,10 +18,17 @@ class DashboardController extends Controller
 {
     public function index(Request $request)
     {
-        $desde = $request->query('desde');
-        $hasta = $request->query('hasta');
-        $periodo = $request->query('periodo');
-        $caja = $request->query('caja');
+        $filtros = $request->validate([
+            'desde' => ['nullable', 'date'],
+            'hasta' => ['nullable', 'date', 'after_or_equal:desde'],
+            'periodo' => ['nullable', 'integer'],
+            'caja' => ['nullable', 'integer'],
+        ]);
+
+        $desde = $filtros['desde'] ?? null;
+        $hasta = $filtros['hasta'] ?? null;
+        $periodo = $filtros['periodo'] ?? null;
+        $caja = $filtros['caja'] ?? null;
 
         $filtrarPagos = fn ($q) => $q
             ->where('estado', 'CONFIRMADO')
@@ -39,24 +46,17 @@ class DashboardController extends Controller
         $totalIngresos = $filtrarPagos(Pago::query())->sum('monto_total');
         $totalEgresos = $filtrarGastos(Gasto::query())->sum('monto');
 
+        // Una sola consulta agrupada en lugar de cargar todos los
+        // movimientos de cada caja en memoria.
+        $netos = MovimientoCaja::where('estado', 'ACTIVO')
+            ->select('id_caja', DB::raw("SUM(CASE WHEN tipo IN ('INGRESO','AJUSTE_INGRESO') THEN monto ELSE -monto END) as neto"))
+            ->groupBy('id_caja')
+            ->pluck('neto', 'id_caja');
+
         $saldosCajas = Caja::select('id_caja', 'nombre', 'saldo_inicial')
-            ->withCount(['movimientos as total_movimientos'])
             ->get()
-            ->map(function ($caja) {
-                $latestMovimiento = MovimientoCaja::where('id_caja', $caja->id_caja)
-                    ->orderBy('fecha_movimiento', 'desc')
-                    ->first();
-                $saldo = $caja->saldo_inicial;
-                if ($latestMovimiento) {
-                    $movimientos = MovimientoCaja::where('id_caja', $caja->id_caja)
-                        ->where('estado', 'ACTIVO')
-                        ->get();
-                    $saldo = $movimientos->sum(function ($m) {
-                        return $m->tipo === 'INGRESO' ? $m->monto : -$m->monto;
-                    });
-                    $saldo += $caja->saldo_inicial;
-                }
-                $caja->saldo_actual = round($saldo, 2);
+            ->map(function ($caja) use ($netos) {
+                $caja->saldo_actual = round((float) $caja->saldo_inicial + (float) ($netos[$caja->id_caja] ?? 0), 2);
 
                 return $caja;
             });
@@ -67,8 +67,10 @@ class DashboardController extends Controller
             });
         })->distinct()->count();
 
+        // PARCIAL también tiene saldo pendiente: excluirla subestimaba la
+        // deuda frente a los reportes de deudores/vencidos.
         $totalVencidos = CuentaPorCobrar::where('fecha_vencimiento', '<', now())
-            ->where('estado', 'PENDIENTE')
+            ->whereIn('estado', ['PENDIENTE', 'PARCIAL'])
             ->count();
 
         $pagosPorMetodo = $filtrarPagos(Pago::query())

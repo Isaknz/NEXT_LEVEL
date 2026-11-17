@@ -120,6 +120,14 @@ class AlumnoController extends Controller
         $id = $alumno->id_alumno;
         $valores = $alumno->toArray();
 
+        // El borrado es lógico, pero dejaría matrículas, cuentas y pagos
+        // apuntando a un alumno invisible para el sistema. Se exige cerrar
+        // primero su historial académico.
+        if ($alumno->matriculas()->exists()) {
+            return redirect()->route('alumnos.index')
+                            ->with('error', "No se puede eliminar al alumno \"{$nombre}\" porque tiene matrículas registradas. Retíralas o cámbiale el estado a INACTIVO.");
+        }
+
         // Soft delete (marca con deleted_at, no borra permanentemente)
         $alumno->delete();
 

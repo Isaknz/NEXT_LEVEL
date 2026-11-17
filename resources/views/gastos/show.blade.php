@@ -122,6 +122,17 @@
                             <span class="text-sm font-medium">{{ $gasto->numero_comprobante }}</span>
                         </div>
                         @endif
+                        @if($gasto->archivo_url)
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-600">Archivo adjunto:</span>
+                            <a href="{{ route('gastos.comprobante', $gasto) }}"
+                               target="_blank"
+                               rel="noopener noreferrer"
+                               class="text-sm font-medium text-indigo-600 hover:text-indigo-800">
+                                <i class="fas fa-paperclip mr-1"></i>Ver comprobante
+                            </a>
+                        </div>
+                        @endif
                     </div>
                 </div>
             </div>

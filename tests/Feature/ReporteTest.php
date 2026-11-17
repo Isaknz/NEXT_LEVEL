@@ -137,4 +137,31 @@ class ReporteTest extends TestCase
         $contenido = $response->streamedContent();
         $this->assertStringNotContainsString('PLIN', $contenido);
     }
+
+    public function test_rechaza_un_rango_de_fechas_invertido(): void
+    {
+        $this->actingAs(User::factory()->create(['role' => 'admin']));
+
+        $this->from('/reportes')
+            ->get('/reportes/export?format=csv&desde=2026-12-31&hasta=2026-01-01')
+            ->assertSessionHasErrors('hasta');
+    }
+
+    public function test_rechaza_una_fecha_con_formato_invalido(): void
+    {
+        $this->actingAs(User::factory()->create(['role' => 'admin']));
+
+        $this->from('/reportes')
+            ->get('/reportes/export?format=csv&desde=no-es-fecha')
+            ->assertSessionHasErrors('desde');
+    }
+
+    public function test_rechaza_un_periodo_inexistente(): void
+    {
+        $this->actingAs(User::factory()->create(['role' => 'admin']));
+
+        $this->from('/reportes')
+            ->get('/reportes/deudores?periodo=999999')
+            ->assertSessionHasErrors('periodo');
+    }
 }

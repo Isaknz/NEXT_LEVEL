@@ -9,11 +9,11 @@ use App\Models\Nivel;
 use App\Models\Grado;
 use App\Models\PeriodoAcademico;
 use App\Models\CicloAcademia;
-use App\Models\Pago;
 use App\Traits\RegistraMovimientos;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 class MatriculaController extends Controller
 {
@@ -59,75 +59,77 @@ class MatriculaController extends Controller
     public function store(MatriculaRequest $request)
     {
         $validated = $request->validated();
-        $pagosIniciales = $request->input('pagos_iniciales');
+        $esAlumnoNuevo = empty($validated['id_alumno']) && $request->filled('alumno_nombres');
 
-        // En el mismo formulario se puede dar de alta al alumno. Si viene
-        // alumno_nombre se crea el registro y se usa como id_alumno, de modo
-        // que nunca haya que salir del módulo para matricular a alguien nuevo.
-        if (empty($validated['id_alumno']) && $request->filled('alumno_nombres')) {
-            $alumno = Alumno::create([
-                'nombres' => $request->input('alumno_nombres'),
-                'apellidos' => $request->input('alumno_apellidos'),
-                'dni' => $request->input('alumno_dni') ?: null,
-                'fecha_nacimiento' => $request->input('alumno_fecha_nacimiento') ?: null,
-                'sexo' => $request->input('alumno_sexo') ?: null,
-                'celular' => $request->input('alumno_celular') ?: null,
-                'email' => $request->input('alumno_email') ?: null,
-                'id_grado' => $validated['id_grado'] ?? null,
-                'estado' => 'ACTIVO',
-            ]);
+        // Solo un alumno ya registrado puede chocar con una matrícula existente.
+        if (! $esAlumnoNuevo) {
+            $existe = Matricula::where('id_alumno', $validated['id_alumno'])
+                              ->where('id_periodo', $validated['id_periodo'])
+                              ->where('modalidad', $validated['modalidad'])
+                              ->whereIn('estado', ['ACTIVA', 'PENDIENTE'])
+                              ->exists();
 
-            $validated['id_alumno'] = $alumno->id_alumno;
-
-            self::registrarMovimiento(
-                'CREAR',
-                'Alumnos',
-                'Alumno',
-                $alumno->id_alumno,
-                "Creó al alumno {$alumno->nombres} {$alumno->apellidos} desde el registro de matrícula",
-                null,
-                $alumno->toArray()
-            );
+            if ($existe) {
+                return back()->withErrors([
+                    'id_alumno' => 'Este alumno ya tiene una matrícula activa en este periodo.'
+                ])->withInput();
+            }
         }
 
-        $existe = Matricula::where('id_alumno', $validated['id_alumno'])
-                          ->where('id_periodo', $validated['id_periodo'])
-                          ->where('modalidad', $validated['modalidad'])
-                          ->whereIn('estado', ['ACTIVA', 'PENDIENTE'])
-                          ->exists();
+        // Los datos del alumno no son columnas de matriculas.
+        $datosAlumno = [
+            'nombres' => $request->input('alumno_nombres'),
+            'apellidos' => $request->input('alumno_apellidos'),
+            'dni' => $request->input('alumno_dni') ?: null,
+            'fecha_nacimiento' => $request->input('alumno_fecha_nacimiento') ?: null,
+            'sexo' => $request->input('alumno_sexo') ?: null,
+            'celular' => $request->input('alumno_celular') ?: null,
+            'email' => $request->input('alumno_email') ?: null,
+            'id_grado' => $validated['id_grado'] ?? null,
+            'estado' => 'ACTIVO',
+        ];
 
-        if ($existe) {
-            return back()->withErrors([
-                'id_alumno' => 'Este alumno ya tiene una matrícula activa en este periodo.'
-            ])->withInput();
-        }
+        $validated = array_diff_key($validated, array_flip([
+            'alumno_nombres',
+            'alumno_apellidos',
+            'alumno_dni',
+            'alumno_fecha_nacimiento',
+            'alumno_sexo',
+            'alumno_celular',
+            'alumno_email',
+        ]));
 
         $validated['registrado_por'] = auth()->id();
         $matricula = null;
+        $alumno = null;
 
         try {
-            DB::transaction(function () use ($validated, $pagosIniciales, &$matricula) {
-                $matricula = Matricula::create($validated);
+            DB::transaction(function () use (&$validated, &$matricula, &$alumno, $datosAlumno, $esAlumnoNuevo) {
+                if ($esAlumnoNuevo) {
+                    $alumno = Alumno::create($datosAlumno);
+                    $validated['id_alumno'] = $alumno->id_alumno;
+                } else {
+                    // El lock serializa el check de duplicado: dos altas
+                    // simultáneas del mismo alumno+periodo+modalidad no
+                    // pueden colarse ambas.
+                    $existe = Matricula::where('id_alumno', $validated['id_alumno'])
+                        ->where('id_periodo', $validated['id_periodo'])
+                        ->where('modalidad', $validated['modalidad'])
+                        ->whereIn('estado', ['ACTIVA', 'PENDIENTE'])
+                        ->lockForUpdate()
+                        ->exists();
 
-                if (!empty($pagosIniciales)) {
-                    foreach ($pagosIniciales as $pagoData) {
-                        $pago = \App\Models\Pago::create([
-                            'codigo' => 'PAG-' . $matricula->codigo . '-' . now()->format('ymd'),
-                            'id_matricula' => $matricula->id_matricula,
-                            'id_caja' => $pagoData['id_caja'],
-                            'fecha_pago' => now()->format('Y-m-d H:i:s'),
-                            'metodo_pago' => $pagoData['metodo_pago'] ?? 'EFECTIVO',
-                            'monto_total' => $pagoData['monto'],
-                            'estado' => 'CONFIRMADO',
-                            'registrado_por' => auth()->id(),
+                    if ($existe) {
+                        throw ValidationException::withMessages([
+                            'id_alumno' => 'Este alumno ya tiene una matrícula activa en este periodo.',
                         ]);
-
-                        if ($pago->monto_total >= $matricula->cuentasPorCobrar()->whereIn('estado', ['PENDIENTE', 'PARCIAL'])->sum('monto_pendiente')) {
-                            $matricula->update(['estado' => 'PAGADA']);
-                        }
                     }
                 }
+
+                $matricula = Matricula::create($validated);
             });
+        } catch (ValidationException $e) {
+            throw $e;
         } catch (\Throwable $e) {
             Log::error('Error al registrar matrícula', [
                 'exception' => $e->getMessage(),
@@ -137,6 +139,18 @@ class MatriculaController extends Controller
             return back()->withErrors([
                 'error' => 'Ocurrió un error al registrar la matrícula.',
             ])->withInput();
+        }
+
+        if ($alumno) {
+            self::registrarMovimiento(
+                'CREAR',
+                'Alumnos',
+                'Alumno',
+                $alumno->id_alumno,
+                "Creó al alumno {$alumno->nombres} {$alumno->apellidos} desde el registro de matrícula",
+                null,
+                $alumno->toArray()
+            );
         }
 
         self::registrarMovimiento(
@@ -182,6 +196,15 @@ class MatriculaController extends Controller
 
         $validated = $request->validated();
 
+        // Una matrícula PAGADA tiene todas sus cuentas saldadas: devolverla a
+        // ACTIVA/PENDIENTE a mano la reabre sin generar la deuda correspondiente.
+        // Solo puede pasar a estados terminales o seguir PAGADA.
+        if ($matricula->estado === 'PAGADA'
+            && in_array($validated['estado'], ['ACTIVA', 'PENDIENTE'], true)) {
+            return redirect()->route('matriculas.index')
+                ->with('error', 'No se puede reabrir una matrícula pagada. Si el alumno debe dinero, cree primero las cuentas por cobrar correspondientes.');
+        }
+
         $validated['updated_by'] = auth()->id();
 
         $matricula->update($validated);
@@ -205,10 +228,17 @@ class MatriculaController extends Controller
         if (auth()->user()->role === 'cajero') {
             return abort(403, 'Sin permisos');
         }
-        // Verificar que no tenga pagos
-        if ($matricula->pagos()->count() > 0) {
+        // Los pagos y las cuentas por cobrar apuntan a la matrícula con una
+        // clave foránea restrictiva: si existen, el DELETE terminaría en un
+        // error 500 en lugar de un mensaje entendible.
+        if ($matricula->pagos()->exists()) {
             return redirect()->route('matriculas.index')
                             ->with('error', 'No se puede eliminar una matrícula que tiene pagos registrados.');
+        }
+
+        if ($matricula->cuentasPorCobrar()->exists()) {
+            return redirect()->route('matriculas.index')
+                            ->with('error', 'No se puede eliminar una matrícula que tiene cuentas por cobrar. Anule primero esas cuentas.');
         }
 
         $codigo = $matricula->codigo;

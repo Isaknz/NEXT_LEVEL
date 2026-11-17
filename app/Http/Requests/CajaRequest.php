@@ -24,11 +24,10 @@ class CajaRequest extends FormRequest
             'nombre' => ['required', 'string', 'max:100'],
             'tipo' => ['required', Rule::in(['EFECTIVO', 'BANCO', 'BILLETERA_DIGITAL'])],
             'saldo_inicial' => ['nullable', 'numeric', 'min:0', 'max:99999999.99'],
-            'estado' => [
-                'required',
-                Rule::in(['ACTIVA', 'INACTIVA']),
-                Rule::unique('cajas', 'id_caja')->ignore($caja?->id_caja, 'id_caja')->where(fn ($q) => $q->where('estado', 'CERRADA')),
-            ],
+            // La protección contra editar una caja CERRADA vive en el
+            // controlador; la regla unique anterior sobre id_caja nunca
+            // podía fallar (la PK ya es única) y no aportaba nada.
+            'estado' => ['required', Rule::in(['ACTIVA', 'INACTIVA'])],
         ];
     }
 
@@ -45,6 +44,6 @@ class CajaRequest extends FormRequest
 
     public function messages(): array
     {
-        return ['estado.unique' => 'No se puede cambiar el estado de una caja que ya fue cerrada.'];
+        return [];
     }
 }

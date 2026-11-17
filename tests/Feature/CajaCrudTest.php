@@ -243,6 +243,8 @@ class CajaCrudTest extends TestCase
         $this->assertDatabaseHas('cajas', [
             'id_caja' => $caja->id_caja,
             'estado' => 'ACTIVA',
+            'monto_cierre' => null,
+            'fecha_cierre' => null,
             'usuarios_id_cerrado' => null,
         ]);
     }

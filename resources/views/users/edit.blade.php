@@ -41,6 +41,7 @@
                     <option value="admin" {{ old('role', $user->role) === 'admin' ? 'selected' : '' }}>Administrador</option>
                     <option value="gerente" {{ old('role', $user->role) === 'gerente' ? 'selected' : '' }}>Gerente</option>
                     <option value="secretaria" {{ old('role', $user->role) === 'secretaria' ? 'selected' : '' }}>Secretaria</option>
+                    <option value="cajero" {{ old('role', $user->role) === 'cajero' ? 'selected' : '' }}>Cajero</option>
                 </select>
             </div>
 

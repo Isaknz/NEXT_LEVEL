@@ -111,7 +111,7 @@ return new class extends Migration
                 $table->unsignedBigInteger('id_matricula');
                 $table->unsignedBigInteger('id_caja');
                 $table->dateTime('fecha_pago');
-                $table->enum('metodo_pago', ['EFECTIVO', 'YAPE', 'PLIN', 'TARJETA', 'OTRO']);
+                $table->enum('metodo_pago', ['EFECTIVO', 'YAPE', 'PLIN', 'TRANSFERENCIA', 'TARJETA', 'OTRO']);
                 $table->string('numero_operacion', 100)->nullable();
                 $table->decimal('monto_total', 12, 2);
                 $table->enum('estado', ['CONFIRMADO', 'ANULADO'])->default('CONFIRMADO');
@@ -249,7 +249,7 @@ return new class extends Migration
                 $table->unsignedBigInteger('id_matricula');
                 $table->unsignedBigInteger('id_caja');
                 $table->dateTime('fecha_pago');
-                $table->enum('metodo_pago', ['EFECTIVO', 'YAPE', 'PLIN', 'TARJETA', 'OTRO']);
+                $table->enum('metodo_pago', ['EFECTIVO', 'YAPE', 'PLIN', 'TRANSFERENCIA', 'TARJETA', 'OTRO']);
                 $table->string('numero_operacion', 100)->nullable();
                 $table->decimal('monto_total', 12, 2);
                 $table->enum('estado', ['CONFIRMADO', 'ANULADO'])->default('CONFIRMADO');

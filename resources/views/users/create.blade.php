@@ -41,6 +41,7 @@
                     <option value="admin" {{ old('role') === 'admin' ? 'selected' : '' }}>Administrador</option>
                     <option value="gerente" {{ old('role') === 'gerente' ? 'selected' : '' }}>Gerente</option>
                     <option value="secretaria" {{ old('role') === 'secretaria' ? 'selected' : '' }}>Secretaria</option>
+                    <option value="cajero" {{ old('role') === 'cajero' ? 'selected' : '' }}>Cajero</option>
                 </select>
             </div>
 

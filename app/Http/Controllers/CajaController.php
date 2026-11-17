@@ -123,36 +123,63 @@ class CajaController extends Controller
             return back()->with('error', 'La caja ya está cerrada.');
         }
 
-        [$ingresos, $egresos] = $this->totales($caja);
+        try {
+            DB::transaction(function () use ($caja) {
+                $cajaBloqueada = Caja::whereKey($caja->id_caja)->lockForUpdate()->firstOrFail();
 
-        $caja->update([
-            'monto_apertura' => $caja->saldo_inicial,
-            'monto_cierre' => $caja->saldo_inicial + $ingresos - $egresos,
-            'fecha_cierre' => now(),
-            'estado' => 'CERRADA',
-            'usuarios_id_cerrado' => auth()->id(),
-        ]);
+                if ($cajaBloqueada->estado === 'CERRADA') {
+                    throw new \DomainException('La caja ya está cerrada.');
+                }
 
-        $this->registrarMovimiento('CERRAR_CAJA', 'cajas', 'Caja', $caja->id_caja, "Caja cerrada: {$caja->codigo} con saldo final " . number_format((float) $caja->monto_cierre, 2));
+                [$ingresos, $egresos] = $this->totales($cajaBloqueada);
+
+                $cajaBloqueada->update([
+                    'monto_apertura' => $cajaBloqueada->saldo_inicial,
+                    'monto_cierre' => $cajaBloqueada->saldo_inicial + $ingresos - $egresos,
+                    'fecha_cierre' => now(),
+                    'estado' => 'CERRADA',
+                    'usuarios_id_cerrado' => auth()->id(),
+                ]);
+
+                $this->registrarMovimiento('CERRAR_CAJA', 'cajas', 'Caja', $cajaBloqueada->id_caja, "Caja cerrada: {$cajaBloqueada->codigo} con saldo final " . number_format((float) $cajaBloqueada->monto_cierre, 2));
+            });
+        } catch (\DomainException $e) {
+            return back()->with('error', $e->getMessage());
+        }
 
         return redirect()->route('cajas.index')->with('success', 'Caja cerrada correctamente.');
     }
 
     public function aperturar(Caja $caja)
     {
-        if ($caja->estado !== 'CERRADA') {
-            return back()->with('error', 'La caja no está cerrada.');
+        // INACTIVA también puede reactivarse: es el estado que deja el
+        // formulario de edición y sin salida quedaría bloqueada para siempre.
+        if (! in_array($caja->estado, ['CERRADA', 'INACTIVA'], true)) {
+            return back()->with('error', 'La caja no está cerrada ni inactiva.');
         }
 
-        $anteriores = $caja->only(['estado', 'monto_cierre', 'fecha_cierre']);
+        try {
+            DB::transaction(function () use ($caja) {
+                $cajaBloqueada = Caja::whereKey($caja->id_caja)->lockForUpdate()->firstOrFail();
 
-        $caja->update([
-            'estado' => 'ACTIVA',
-            'fecha_cierre' => null,
-            'usuarios_id_cerrado' => null,
-        ]);
+                if (! in_array($cajaBloqueada->estado, ['CERRADA', 'INACTIVA'], true)) {
+                    throw new \DomainException('La caja no está cerrada ni inactiva.');
+                }
 
-        $this->registrarMovimiento('REABRIR_CAJA', 'cajas', 'Caja', $caja->id_caja, "Caja reabierta: {$caja->codigo}", $anteriores, $caja->only(['estado']));
+                $anteriores = $cajaBloqueada->only(['estado', 'monto_cierre', 'fecha_cierre']);
+
+                $cajaBloqueada->update([
+                    'estado' => 'ACTIVA',
+                    'monto_cierre' => null,
+                    'fecha_cierre' => null,
+                    'usuarios_id_cerrado' => null,
+                ]);
+
+                $this->registrarMovimiento('REABRIR_CAJA', 'cajas', 'Caja', $cajaBloqueada->id_caja, "Caja reabierta: {$cajaBloqueada->codigo}", $anteriores, $cajaBloqueada->only(['estado', 'monto_cierre', 'fecha_cierre']));
+            });
+        } catch (\DomainException $e) {
+            return back()->with('error', $e->getMessage());
+        }
 
         return redirect()->route('cajas.index')->with('success', 'Caja reabierta correctamente.');
     }

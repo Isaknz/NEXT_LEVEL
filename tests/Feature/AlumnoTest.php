@@ -184,6 +184,21 @@ class AlumnoTest extends TestCase
         ]);
     }
 
+    public function test_no_se_puede_eliminar_un_alumno_con_matriculas(): void
+    {
+        $user = User::factory()->create();
+        $this->actingAs($user);
+
+        $alumno = Alumno::factory()->create();
+        Matricula::factory()->create(['id_alumno' => $alumno->id_alumno]);
+
+        $this->from('/alumnos')
+            ->delete('/alumnos/' . $alumno->id_alumno)
+            ->assertSessionHas('error');
+
+        $this->assertNotSoftDeleted('alumnos', ['id_alumno' => $alumno->id_alumno]);
+    }
+
     public function test_un_codigo_eliminado_logicamente_no_provoca_error_500(): void
     {
         $user = User::factory()->create();

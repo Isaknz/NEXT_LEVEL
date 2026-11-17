@@ -18,13 +18,13 @@ class PagoRequest extends FormRequest
             'codigo' => ['required', 'string', 'max:40', Rule::unique('pagos', 'codigo')],
             'id_matricula' => 'required|exists:matriculas,id_matricula',
             'id_caja' => 'required|exists:cajas,id_caja',
-            'fecha_pago' => 'required|date',
+            'fecha_pago' => 'required|date|before_or_equal:today',
             'metodo_pago' => 'required|in:EFECTIVO,YAPE,PLIN,TRANSFERENCIA,TARJETA,OTRO',
             'numero_operacion' => 'nullable|string|max:100',
             'monto_total' => 'required|numeric|min:0.01',
             'observaciones' => 'nullable|string|max:500',
             'cuentas' => 'required|array|min:1',
-            'cuentas.*.id_cuenta' => 'required|exists:cuentas_por_cobrar,id_cuenta',
+            'cuentas.*.id_cuenta' => 'required|exists:cuentas_por_cobrar,id_cuenta|distinct',
             'cuentas.*.monto' => 'required|numeric|min:0.01',
         ];
     }

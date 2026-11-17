@@ -2,28 +2,43 @@
 
 namespace App\Exports;
 
-use Maatwebsite\Excel\Concerns\FromCollection;
+use App\Models\Pago;
+use Illuminate\Database\Eloquent\Builder;
+use Maatwebsite\Excel\Concerns\FromQuery;
 use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Concerns\WithMapping;
 
-class ReportesExport implements FromCollection, WithHeadings
+class ReportesExport implements FromQuery, WithHeadings, WithMapping
 {
     protected array $encabezados;
 
-    protected array $data;
+    protected Builder $query;
 
-    public function __construct(array $encabezados, array $data)
+    public function __construct(array $encabezados, Builder $query)
     {
         $this->encabezados = $encabezados;
-        $this->data = $data;
+        $this->query = $query;
     }
 
-    public function collection()
+    public function query(): Builder
     {
-        return collect($this->data);
+        return $this->query;
     }
 
     public function headings(): array
     {
         return $this->encabezados;
+    }
+
+    public function map($pago): array
+    {
+        /** @var Pago $pago */
+        return [
+            $pago->matricula->alumno->nombre_completo ?? 'N/A',
+            $pago->matricula->codigo ?? 'N/A',
+            $pago->metodo_pago,
+            number_format((float) $pago->monto_total, 2),
+            $pago->estado,
+        ];
     }
 }

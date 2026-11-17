@@ -60,9 +60,31 @@ class MatriculaRequest extends FormRequest
             ],
             'fecha_matricula' => 'required|date',
             'tipo_matricula' => 'required|in:NUEVO,REGULAR,TRASLADO,REINGRESO',
-            'estado' => 'required|in:PENDIENTE,ACTIVA,RETIRADA,ANULADA,FINALIZADA,PAGADA',
+            // PAGADA solo la asigna el sistema al saldar las cuentas por
+            // cobrar; permitirla a mano falseaba el estado académico sin
+            // que existiera ningún pago. Se acepta únicamente cuando la
+            // matrícula ya está PAGADA, para no romper el formulario al
+            // editarla.
+            'estado' => ['required', Rule::in($this->estadosPermitidos())],
             'observaciones' => 'nullable|string|max:500',
         ];
+    }
+
+    /**
+     * Estados que el formulario puede enviar. PAGADA queda reservada al
+     * flujo de pagos, salvo que la matrícula ya lo tenga (edición).
+     */
+    private function estadosPermitidos(): array
+    {
+        $estados = ['PENDIENTE', 'ACTIVA', 'RETIRADA', 'ANULADA', 'FINALIZADA'];
+
+        $matricula = $this->route('matricula');
+
+        if ($matricula && $matricula->estado === 'PAGADA') {
+            $estados[] = 'PAGADA';
+        }
+
+        return $estados;
     }
 
     public function attributes(): array

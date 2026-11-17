@@ -74,9 +74,10 @@ php artisan respaldo:restaurar storage/app/respaldos/nextlevel_db_2026-10-19_155
 Comportamiento:
 
 1. Verifica el SHA-256 contra el manifiesto y **se niega** a restaurar un archivo alterado o incompleto.
-2. Si el destino es la base en uso, exige `--forzar` (evita pisar producción por error).
-3. Con `--destino`, crea la base si no existe.
-4. Al terminar compara las filas de cada tabla con el manifiesto y avisa de cualquier diferencia.
+2. Si el respaldo **no tiene manifiesto** (o el manifiesto no contiene SHA-256), la restauración se aborta: sin referencia de integridad un volcado alterado se restauraría igual. Solo se puede omitir con `--sin-verificar`, que queda registrado en la salida como advertencia.
+3. Si el destino es la base en uso, exige `--forzar` (evita pisar producción por error).
+4. Con `--destino`, crea la base si no existe.
+5. Al terminar compara las filas de cada tabla con el manifiesto y avisa de cualquier diferencia.
 
 La restauración es repetible: el volcado incluye `DROP TABLE IF EXISTS`, así que se
 puede volver a ejecutar sobre la misma base.

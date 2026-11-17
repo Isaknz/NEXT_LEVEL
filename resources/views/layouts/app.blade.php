@@ -52,10 +52,13 @@
             </a>
             @endif
 
+            <!-- Matrículas -->
+            @if(Route::has('matriculas.index') && auth()->user()->puedeVerModulo('matriculas'))
             <a href="{{ route('matriculas.index') }}" class="flex items-center px-3 py-2.5 text-sm rounded-lg hover:bg-blue-900 {{ request()->routeIs('matriculas.*') ? 'bg-blue-900 text-white' : 'text-blue-200' }}">
                 <i class="fas fa-file-invoice w-5"></i>
                 <span class="ms-3">Matrículas</span>
             </a>
+            @endif
 
             <!-- Cuentas por Cobrar -->
             @if(Route::has('cuentas-por-cobrar.index') && auth()->user()->puedeVerModulo('cuentas-por-cobrar'))
@@ -143,11 +146,6 @@
                     @if(Route::has('categorias.index') && auth()->user()->puedeVerModulo('categorias'))
                     <a href="{{ route('categorias.index') }}" class="flex items-center px-3 py-2 text-sm rounded-lg hover:bg-blue-900 text-blue-300 {{ request()->is('categorias*') ? 'bg-blue-900 text-white' : '' }}">
                         <i class="fas fa-folder w-4"></i><span class="ms-2">Categorías</span>
-                    </a>
-                    @endif
-                    @if(Route::has('cajas.index') && auth()->user()->puedeVerModulo('cajas'))
-                    <a href="{{ route('cajas.index') }}" class="flex items-center px-3 py-2 text-sm rounded-lg hover:bg-blue-900 text-blue-300 {{ request()->is('cajas*') ? 'bg-blue-900 text-white' : '' }}">
-                        <i class="fas fa-coins w-4"></i><span class="ms-2">Cajas</span>
                     </a>
                     @endif
                     @if(Route::has('users.index') && auth()->user()->puedeVerModulo('users'))

@@ -25,7 +25,7 @@ class GastoRequest extends FormRequest
             ],
             'id_categoria_gasto' => 'required|exists:categorias_gasto,id_categoria_gasto',
             'id_caja' => 'required|exists:cajas,id_caja',
-            'fecha_gasto' => 'required|date',
+            'fecha_gasto' => 'required|date|before_or_equal:today',
             'proveedor' => 'nullable|string|max:150',
             'concepto' => 'required|string|max:150',
             'descripcion' => 'nullable|string|max:500',

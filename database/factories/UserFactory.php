@@ -31,6 +31,7 @@ class UserFactory extends Factory
             'role' => 'secretaria',
             'estado' => 'activo',
             'password_changed_at' => now(),
+            'email_verified_at' => now(),
             'remember_token' => Str::random(10),
         ];
     }

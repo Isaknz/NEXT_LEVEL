@@ -108,4 +108,62 @@ class GastoTest extends TestCase
         $response->assertSessionHasErrors('codigo');
         $this->assertSame(1, Gasto::where('codigo', 'GAS-UNICO-001')->count());
     }
+
+    public function test_no_se_puede_editar_un_gasto_de_una_caja_cerrada(): void
+    {
+        $this->registrarUsuario();
+        $datos = $this->datosGasto('GAS-CERRADA-EDIT');
+
+        $this->post('/gastos', $datos['payload']);
+
+        $gasto = Gasto::where('codigo', 'GAS-CERRADA-EDIT')->firstOrFail();
+        $gasto->caja->update(['estado' => 'CERRADA']);
+
+        $payload = $datos['payload'];
+        $payload['concepto'] = 'Concepto modificado indebidamente';
+
+        $this->from(route('gastos.index'))
+            ->put(route('gastos.update', $gasto), $payload)
+            ->assertSessionHasErrors('error');
+
+        $this->assertDatabaseHas('gastos', [
+            'id_gasto' => $gasto->id_gasto,
+            'concepto' => 'Pago de luz',
+        ]);
+    }
+
+    public function test_no_se_puede_anular_un_gasto_de_una_caja_cerrada(): void
+    {
+        $this->registrarUsuario();
+        $datos = $this->datosGasto('GAS-CERRADA-ANULAR');
+
+        $this->post('/gastos', $datos['payload']);
+
+        $gasto = Gasto::where('codigo', 'GAS-CERRADA-ANULAR')->firstOrFail();
+        $gasto->caja->update(['estado' => 'CERRADA']);
+
+        $this->from(route('gastos.index'))
+            ->post(route('gastos.anular', $gasto), [
+                'motivo_anulacion' => 'Intento sobre caja cerrada',
+            ])
+            ->assertSessionHasErrors('error');
+
+        $this->assertDatabaseHas('gastos', [
+            'id_gasto' => $gasto->id_gasto,
+            'estado' => 'REGISTRADO',
+        ]);
+    }
+
+    public function test_la_vista_muestra_el_enlace_al_comprobante_adjunto(): void
+    {
+        $this->registrarUsuario();
+
+        $gasto = Gasto::factory()->create([
+            'archivo_url' => 'comprobantes/gastos/prueba.pdf',
+        ]);
+
+        $this->get(route('gastos.show', $gasto))
+            ->assertOk()
+            ->assertSee(route('gastos.comprobante', $gasto), false);
+    }
 }

@@ -91,6 +91,14 @@ class PagoController extends Controller
             ]);
         }
 
+        $matricula = Matricula::find($datos['id_matricula']);
+
+        if (! $matricula || ! in_array($matricula->estado, ['ACTIVA', 'PENDIENTE'], true)) {
+            throw ValidationException::withMessages([
+                'id_matricula' => 'La matrícula seleccionada no admite pagos en su estado actual.',
+            ]);
+        }
+
         foreach ($datos['cuentas'] as $cuentaData) {
             $cuenta = CuentaPorCobrar::find($cuentaData['id_cuenta']);
 
@@ -142,8 +150,19 @@ class PagoController extends Controller
 
                 foreach ($datos['cuentas'] as $cuentaData) {
                     // lockForUpdate evita que dos pagos simultáneos lean el
-                    // mismo saldo y sobrepasen la cuenta.
+                    // mismo saldo y sobrepasen la cuenta. Bajo el lock se
+                    // repiten TODAS las validaciones: entre la revisión
+                    // previa y este punto la cuenta pudo anularse o cambiar
+                    // de matrícula.
                     $cuenta = CuentaPorCobrar::lockForUpdate()->find($cuentaData['id_cuenta']);
+
+                    if (! $cuenta
+                        || $cuenta->id_matricula != $datos['id_matricula']
+                        || ! in_array($cuenta->estado, ['PENDIENTE', 'PARCIAL'], true)) {
+                        throw ValidationException::withMessages([
+                            'cuentas' => 'El saldo de una de las cuentas cambió. Vuelve a intentarlo.',
+                        ]);
+                    }
 
                     if ($cuentaData['monto'] > $cuenta->monto_pendiente + 0.01) {
                         throw ValidationException::withMessages([
@@ -190,6 +209,8 @@ class PagoController extends Controller
                     $pago->matricula->update(['estado' => 'PAGADA']);
                 }
             });
+        } catch (ValidationException $e) {
+            throw $e;
         } catch (\Throwable $e) {
             Log::error('Error al registrar pago', [
                 'exception' => $e->getMessage(),
@@ -240,6 +261,15 @@ class PagoController extends Controller
     public function comprobante(Pago $pago)
     {
         $pago->load(['matricula.alumno', 'matricula.nivel', 'matricula.alumno.apoderado', 'detalles.cuentaPorCobrar.concepto']);
+
+        self::registrarMovimiento(
+            'IMPRIMIR',
+            'Pagos',
+            'Pago',
+            $pago->id_pago,
+            "Imprimió el comprobante del pago {$pago->codigo}"
+        );
+
         $pdf = PDF::loadView('pagos.comprobante', compact('pago'));
 
         return $pdf->stream('comprobante-pago-'.$pago->codigo.'.pdf');
@@ -262,8 +292,20 @@ class PagoController extends Controller
             return back()->withErrors(['error' => 'Este pago ya está anulado.']);
         }
 
+        if ($pago->caja?->estado !== 'ACTIVA') {
+            return back()->withErrors([
+                'error' => "No se puede anular el pago \"{$pago->codigo}\" porque su caja no está abierta. Reabra la caja primero.",
+            ]);
+        }
+
         try {
             DB::transaction(function () use ($request, $pago) {
+                $caja = Caja::whereKey($pago->id_caja)->lockForUpdate()->first();
+
+                if ($caja?->estado !== 'ACTIVA') {
+                    throw new \DomainException("No se puede anular el pago \"{$pago->codigo}\" porque su caja no está abierta. Reabra la caja primero.");
+                }
+
                 $pago->estado = 'ANULADO';
                 $pago->anulado_por = auth()->id();
                 $pago->anulado_at = now();
@@ -293,6 +335,8 @@ class PagoController extends Controller
                     $pago->comprobante->delete();
                 }
             });
+        } catch (\DomainException $e) {
+            return back()->withErrors(['error' => $e->getMessage()]);
         } catch (\Throwable $e) {
             Log::error('Error al anular pago', [
                 'exception' => $e->getMessage(),

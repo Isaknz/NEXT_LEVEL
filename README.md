@@ -19,7 +19,7 @@
 | **Policies** | 2 |
 | **Factories** | 13 |
 | **Archivos de prueba** | 20 |
-| **Tests / aserciones** | **223 / 627** (verdes en SQLite y MySQL) |
+| **Tests / aserciones** | **253 / 702** (verdes en SQLite y MySQL) |
 | **Roles soportados** | 4 (`admin`, `gerente`, `secretaria`, `cajero`) |
 | **Acciones auditadas** | 14 |
 | **Rama oficial** | `master` |
@@ -149,6 +149,7 @@ php artisan key:generate
 # Configura MySQL en .env (DB_DATABASE, DB_USERNAME, DB_PASSWORD)
 php artisan migrate
 php artisan db:seed
+php artisan storage:link
 
 npm install
 npm run build
@@ -200,7 +201,7 @@ Creadas por `database/seeders/UsuariosSeeder.php` (seeder idempotente, no pisa c
 php artisan test
 ```
 
-**229 tests · 642 aserciones** — ejecutado y verificado tanto en **SQLite** como en **MySQL real**.
+**253 tests · 702 aserciones** — ejecutado y verificado tanto en **SQLite** como en **MySQL real**.
 
 | Archivo de prueba | Cobertura |
 |---|---|
@@ -293,7 +294,7 @@ tests/Feature/           20 archivos de prueba
 - ✅ **Auditoría completa** en las 14 acciones del dominio, con evidencia ante borrados.
 - ✅ **Reportes exportables** en CSV, Excel y PDF, más vistas de deudores y vencidos.
 - ✅ **Idioma** íntegramente español (interfaz, validaciones y correos).
-- ✅ **Pruebas:** 223 tests / 625 assertions verdes en SQLite **y** MySQL real, incluida la verificación de que toda ruta GET responde.
+- ✅ **Pruebas:** 253 tests / 702 assertions verdes en SQLite **y** MySQL real, incluida la verificación de que toda ruta GET responde.
 - ✅ **Respaldo y restauración** con comandos Artisan, verificación SHA-256, retención automática y ciclo de restauración ensayado (28/28 tablas idénticas), documentado en `docs/backup-restore.md`.
 - ✅ **Interfaz de acceso rediseñada** con identidad institucional y comportamiento responsive.
 - ✅ **Árbol de Git limpio** y sincronizado con el remoto.

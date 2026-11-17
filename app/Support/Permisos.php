@@ -27,6 +27,20 @@ class Permisos
         'pagos.anular',
         'gastos.anular',
         'cuentas-por-cobrar.anular',
+        // Borrar una CxC es peor que anularla (desaparece el registro):
+        // si no puede anularla, tampoco puede eliminarla.
+        'cuentas-por-cobrar.destroy',
+        // La caja es el único control sobre el dinero físico: crear, editar,
+        // cerrar, reabrir o ajustar saldos queda fuera de la secretaría.
+        // Solo conserva la lectura (index/show) para consultar saldos.
+        'cajas.create',
+        'cajas.store',
+        'cajas.edit',
+        'cajas.update',
+        'cajas.destroy',
+        'cajas.cerrar',
+        'cajas.aperturar',
+        'cajas.ajuste',
     ];
 
     /**
@@ -43,6 +57,10 @@ class Permisos
         'users.edit',
         'users.update',
         'users.destroy',
+        // Borrar el rastro de auditoría es una acción que solo puede hacer
+        // el administrador; si el gerente pudiera limpiar el log, podría
+        // ocultar sus propias operaciones.
+        'auditoria.limpiar',
     ];
 
     /**

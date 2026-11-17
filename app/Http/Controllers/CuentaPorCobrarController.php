@@ -139,6 +139,12 @@ class CuentaPorCobrarController extends Controller
 
     public function destroy(CuentaPorCobrar $cuenta)
     {
+        // Borrar es más destructivo que anular: la secretaría tiene prohibido
+        // anular CxC, así que tampoco puede eliminarlas del todo.
+        if (in_array(auth()->user()->role, ['secretaria', 'cajero'], true)) {
+            return back()->withErrors(['error' => 'No tienes permiso para eliminar cuentas por cobrar.']);
+        }
+
         if ($cuenta->pagoDetalles()->exists()) {
             return back()->with('error', "No se puede eliminar la cuenta \"{$cuenta->referencia}\" porque tiene pagos aplicados. Anúlela en su lugar.");
         }
@@ -161,6 +167,10 @@ class CuentaPorCobrarController extends Controller
 
         if ($cuenta->estado === 'PAGADA') {
             return back()->with('error', "No se puede anular la cuenta \"{$cuenta->referencia}\" porque está PAGADA. Anule primero el pago que la canceló.");
+        }
+
+        if ($cuenta->pagoDetalles()->exists()) {
+            return back()->with('error', "No se puede anular la cuenta \"{$cuenta->referencia}\" porque tiene pagos aplicados. Anule primero esos pagos.");
         }
 
         $anteriores = $cuenta->only(['estado']);

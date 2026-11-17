@@ -69,6 +69,12 @@ class AuthController extends Controller
 
     public function updatePassword(Request $request)
     {
+        // El parcial de Breeze usa current_password; el formulario propio
+        // usa password_current. Se aceptan ambos para no romper ninguna vista.
+        if (! $request->filled('password_current') && $request->filled('current_password')) {
+            $request->merge(['password_current' => $request->input('current_password')]);
+        }
+
         $request->validate([
             'password_current' => ['required'],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],

@@ -20,7 +20,8 @@ class RespaldoRestaurar extends Command
     protected $signature = 'respaldo:restaurar
                             {archivo : Ruta del archivo .sql.gz}
                             {--destino= : Base de datos destino (por defecto la configurada)}
-                            {--forzar : Confirma la restauración sobre la base configurada}';
+                            {--forzar : Confirma la restauración sobre la base configurada}
+                            {--sin-verificar : Restaura aunque no haya manifiesto o falle el SHA-256}';
 
     protected $description = 'Restaura un respaldo de la base de datos';
 
@@ -92,20 +93,32 @@ class RespaldoRestaurar extends Command
      */
     protected function verificarIntegridad(string $archivo): bool
     {
-        $manifiesto = preg_replace('/\.sql\.gz$/', '.json', $archivo);
-
-        if (! is_file($manifiesto)) {
-            $this->warn('No hay manifiesto para este respaldo; no se puede verificar el SHA-256.');
+        if ($this->option('sin-verificar')) {
+            $this->warn('Verificación de integridad omitida por --sin-verificar.');
 
             return true;
+        }
+
+        $manifiesto = preg_replace('/\.sql\.gz$/', '.json', $archivo);
+
+        // Sin manifiesto no hay SHA-256 contra el que comparar: un volcado
+        // alterado o incompleto se restauraría igual. Se exige decisión
+        // explícita con --sin-verificar.
+        if (! is_file($manifiesto)) {
+            $this->error("No existe el manifiesto del respaldo: {$manifiesto}");
+            $this->line('Sin manifiesto no se puede verificar el SHA-256.');
+            $this->line('Si estás seguro de que el archivo es legítimo, repite con --sin-verificar.');
+
+            return false;
         }
 
         $datos = json_decode((string) file_get_contents($manifiesto), true);
 
         if (! is_array($datos) || ! isset($datos['sha256'])) {
-            $this->warn('El manifiesto no contiene un SHA-256 válido; se omite la verificación.');
+            $this->error('El manifiesto no contiene un SHA-256 válido.');
+            $this->line('Si estás seguro de que el archivo es legítimo, repite con --sin-verificar.');
 
-            return true;
+            return false;
         }
 
         $real = hash_file('sha256', $archivo);

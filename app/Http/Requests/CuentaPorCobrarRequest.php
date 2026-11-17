@@ -39,6 +39,25 @@ class CuentaPorCobrarRequest extends FormRequest
         ];
     }
 
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            $original = (float) $this->input('monto_original', 0);
+            $descuento = (float) $this->input('descuento', 0);
+            $recargo = (float) $this->input('recargo', 0);
+            $total = $original - $descuento + $recargo;
+
+            // Un total negativo o cero produce una deuda ficticia: la cuenta
+            // nacería PAGADA o con saldo negativo sin que nadie lo note.
+            if ($total < 0.01) {
+                $validator->errors()->add(
+                    'descuento',
+                    'El total de la cuenta (original - descuento + recargo) debe ser mayor que cero.'
+                );
+            }
+        });
+    }
+
     public function attributes(): array
     {
         return [

@@ -91,7 +91,7 @@ class GastoController extends Controller
             });
         } catch (\Throwable $e) {
             if ($datos['archivo_url'] ?? false) {
-                Storage::disk('public')->delete($datos['archivo_url']);
+                Storage::disk('local')->delete($datos['archivo_url']);
             }
 
             Log::error('Error al registrar gasto', [
@@ -129,6 +129,23 @@ class GastoController extends Controller
         return view('gastos.show', compact('gasto'));
     }
 
+    /**
+     * Sirve el comprobante adjunto desde el disco privado.
+     *
+     * La vista usa la sesión del usuario que lo solicita; streamDownload
+     * evita exponer la ruta real del archivo.
+     */
+    public function descargarComprobante(Gasto $gasto)
+    {
+        if (! $gasto->archivo_url || ! Storage::disk('local')->exists($gasto->archivo_url)) {
+            return back()->with('error', 'El comprobante ya no está disponible.');
+        }
+
+        $nombre = pathinfo($gasto->archivo_url, PATHINFO_BASENAME);
+
+        return Storage::disk('local')->download($gasto->archivo_url, $nombre);
+    }
+
     public function edit(Gasto $gasto)
     {
         if (auth()->user()->role === 'cajero') {
@@ -164,6 +181,14 @@ class GastoController extends Controller
 
         $datos = $request->validated();
 
+        // Una caja que no está abierta es inmutable: ni el gasto ni su
+        // movimiento pueden cambiar de caja o de monto después del arqueo.
+        if ($gasto->caja?->estado !== 'ACTIVA') {
+            return back()->withErrors([
+                'error' => "No se puede editar el gasto \"{$gasto->codigo}\" porque su caja no está abierta. Reabra la caja primero.",
+            ])->withInput();
+        }
+
         // Solo se admite mover el gasto a una caja abierta.
         $caja = Caja::find($datos['id_caja']);
 
@@ -173,11 +198,13 @@ class GastoController extends Controller
             ])->withInput();
         }
 
+        $archivoAnterior = null;
+        $archivoNuevo = null;
+
         if ($request->hasFile('archivo')) {
-            if ($gasto->archivo_url) {
-                Storage::disk('public')->delete($gasto->archivo_url);
-            }
-            $datos['archivo_url'] = $this->guardarComprobante($request);
+            $archivoAnterior = $gasto->archivo_url;
+            $archivoNuevo = $this->guardarComprobante($request);
+            $datos['archivo_url'] = $archivoNuevo;
         }
 
         unset($datos['archivo']);
@@ -187,6 +214,7 @@ class GastoController extends Controller
                 $gasto->update($datos);
 
                 MovimientoCaja::where('id_gasto', $gasto->id_gasto)
+                    ->where('estado', 'ACTIVO')
                     ->update([
                         'id_caja' => $datos['id_caja'],
                         'monto' => $datos['monto'],
@@ -194,6 +222,11 @@ class GastoController extends Controller
                     ]);
             });
         } catch (\Throwable $e) {
+            // El archivo nuevo solo se elimina si la transacción no se confirmó.
+            if ($archivoNuevo) {
+                Storage::disk('local')->delete($archivoNuevo);
+            }
+
             Log::error('Error al actualizar gasto', [
                 'exception' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
@@ -203,6 +236,11 @@ class GastoController extends Controller
             return back()->withErrors([
                 'error' => 'Ocurrió un error al actualizar el gasto. Inténtalo nuevamente.',
             ])->withInput();
+        }
+
+        // El comprobante anterior se elimina únicamente después del commit.
+        if ($archivoAnterior) {
+            Storage::disk('local')->delete($archivoAnterior);
         }
 
         self::registrarMovimiento(
@@ -234,6 +272,12 @@ class GastoController extends Controller
 
         if ($gasto->estado === 'ANULADO') {
             return back()->withErrors(['error' => 'Este gasto ya está anulado.']);
+        }
+
+        if ($gasto->caja?->estado !== 'ACTIVA') {
+            return back()->withErrors([
+                'error' => "No se puede anular el gasto \"{$gasto->codigo}\" porque su caja no está abierta. Reabra la caja primero.",
+            ]);
         }
 
         try {
@@ -290,7 +334,12 @@ class GastoController extends Controller
     }
 
     /**
-     * Guarda el comprobante cargado en el almacenamiento público.
+     * Guarda el comprobante en el disco PRIVADO (storage/app/private).
+     *
+     * Antes se almacenaba en 'public', lo que dejaba los comprobantes
+     * descargables por cualquiera que conociera la URL, sin pasar por la
+     * autenticación. Ahora solo se sirven vía gasto.comprobante, que exige
+     * sesión y permisos.
      */
     private function guardarComprobante(GastoRequest $request): ?string
     {
@@ -298,6 +347,6 @@ class GastoController extends Controller
             return null;
         }
 
-        return $request->file('archivo')->store('comprobantes/gastos', 'public');
+        return $request->file('archivo')->store('comprobantes/gastos', 'local');
     }
 }

@@ -12,6 +12,7 @@ use App\Models\Gasto;
 use App\Models\Caja;
 use App\Models\CuentaPorCobrar;
 use App\Models\ConceptoCobro;
+use App\Models\MovimientoCaja;
 use Illuminate\Support\Facades\Hash;
 
 class DashboardTest extends TestCase
@@ -158,5 +159,44 @@ class DashboardTest extends TestCase
 
         $response->assertStatus(200);
         $this->assertEquals(200, $response->viewData('total_ingresos'));
+    }
+
+    public function test_el_saldo_de_caja_contabiliza_los_ajustes_con_su_signo(): void
+    {
+        $user = User::factory()->admin()->create();
+        $this->actingAs($user);
+
+        $caja = Caja::factory()->create([
+            'saldo_inicial' => 100,
+            'estado' => 'ACTIVA',
+        ]);
+
+        MovimientoCaja::create([
+            'id_caja' => $caja->id_caja,
+            'tipo' => 'AJUSTE_INGRESO',
+            'origen' => 'AJUSTE',
+            'fecha_movimiento' => now(),
+            'monto' => 50,
+            'estado' => 'ACTIVO',
+            'registrado_por' => $user->id,
+        ]);
+
+        MovimientoCaja::create([
+            'id_caja' => $caja->id_caja,
+            'tipo' => 'AJUSTE_EGRESO',
+            'origen' => 'AJUSTE',
+            'fecha_movimiento' => now(),
+            'monto' => 20,
+            'estado' => 'ACTIVO',
+            'registrado_por' => $user->id,
+        ]);
+
+        $response = $this->get('/dashboard');
+        $response->assertOk();
+
+        $cajaDashboard = $response->viewData('saldos_cajas')
+            ->firstWhere('id_caja', $caja->id_caja);
+
+        $this->assertSame(130.0, (float) $cajaDashboard->saldo_actual);
     }
 }

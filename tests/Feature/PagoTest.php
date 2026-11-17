@@ -219,6 +219,34 @@ class PagoTest extends TestCase
         $this->assertDatabaseMissing('pagos', ['codigo' => 'PAG-EXCESO-001']);
     }
 
+    public function test_no_se_puede_anular_un_pago_de_una_caja_cerrada(): void
+    {
+        $user = User::factory()->admin()->create();
+        $this->actingAs($user);
+
+        $pago = Pago::create([
+            'codigo' => 'PAG-CAJA-CERRADA',
+            'id_matricula' => Matricula::factory()->create()->id_matricula,
+            'id_caja' => Caja::factory()->create(['estado' => 'CERRADA'])->id_caja,
+            'fecha_pago' => now(),
+            'metodo_pago' => 'EFECTIVO',
+            'monto_total' => 100,
+            'estado' => 'CONFIRMADO',
+            'registrado_por' => $user->id,
+        ]);
+
+        $this->from(route('pagos.index'))
+            ->post(route('pagos.anular', $pago), [
+                'motivo_anulacion' => 'Intento sobre caja cerrada',
+            ])
+            ->assertSessionHasErrors('error');
+
+        $this->assertDatabaseHas('pagos', [
+            'id_pago' => $pago->id_pago,
+            'estado' => 'CONFIRMADO',
+        ]);
+    }
+
     public function test_el_monto_total_debe_coincidir_con_la_suma_de_detalles(): void
     {
         $user = User::factory()->create(['role' => 'secretaria']);
@@ -251,5 +279,72 @@ class PagoTest extends TestCase
 
         $response->assertSessionHasErrors('monto_total');
         $this->assertDatabaseMissing('pagos', ['codigo' => 'PAG-TOTAL-001']);
+    }
+
+    public function test_no_se_puede_repetir_la_misma_cuenta_en_un_pago(): void
+    {
+        $user = User::factory()->create(['role' => 'secretaria']);
+        $this->actingAs($user);
+
+        $matricula = Matricula::factory()->create();
+        $caja = Caja::factory()->create(['tipo' => 'EFECTIVO']);
+        $concepto = ConceptoCobro::factory()->create();
+
+        $cuenta = CuentaPorCobrar::factory()->create([
+            'id_matricula' => $matricula->id_matricula,
+            'id_concepto' => $concepto->id_concepto,
+            'monto_original' => 200.00,
+            'creado_por' => User::factory()->create()->id,
+        ]);
+
+        // Dos líneas sobre la misma cuenta de 200: cada una por 100 pasaría
+        // la validación individual y el pago duplicaría el cobro real.
+        $response = $this->post('/pagos', [
+            'codigo' => 'PAG-DUP-001',
+            'id_matricula' => $matricula->id_matricula,
+            'id_caja' => $caja->id_caja,
+            'fecha_pago' => now()->format('Y-m-d'),
+            'metodo_pago' => 'EFECTIVO',
+            'monto_total' => '200.00',
+            'cuentas' => [
+                ['id_cuenta' => $cuenta->id_cuenta, 'monto' => '100.00'],
+                ['id_cuenta' => $cuenta->id_cuenta, 'monto' => '100.00'],
+            ],
+        ]);
+
+        $response->assertSessionHasErrors();
+        $this->assertDatabaseMissing('pagos', ['codigo' => 'PAG-DUP-001']);
+    }
+
+    public function test_no_se_puede_pagar_una_matricula_anulada(): void
+    {
+        $user = User::factory()->create(['role' => 'secretaria']);
+        $this->actingAs($user);
+
+        $matricula = Matricula::factory()->create(['estado' => 'ANULADA']);
+        $caja = Caja::factory()->create(['tipo' => 'EFECTIVO']);
+        $concepto = ConceptoCobro::factory()->create();
+
+        $cuenta = CuentaPorCobrar::factory()->create([
+            'id_matricula' => $matricula->id_matricula,
+            'id_concepto' => $concepto->id_concepto,
+            'monto_original' => 100.00,
+            'creado_por' => User::factory()->create()->id,
+        ]);
+
+        $response = $this->post('/pagos', [
+            'codigo' => 'PAG-ANULADA-001',
+            'id_matricula' => $matricula->id_matricula,
+            'id_caja' => $caja->id_caja,
+            'fecha_pago' => now()->format('Y-m-d'),
+            'metodo_pago' => 'EFECTIVO',
+            'monto_total' => '100.00',
+            'cuentas' => [
+                ['id_cuenta' => $cuenta->id_cuenta, 'monto' => '100.00'],
+            ],
+        ]);
+
+        $response->assertSessionHasErrors('id_matricula');
+        $this->assertDatabaseMissing('pagos', ['codigo' => 'PAG-ANULADA-001']);
     }
 }

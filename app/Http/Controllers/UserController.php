@@ -35,7 +35,19 @@ class UserController extends Controller
 
         $validated['password'] = Hash::make($validated['password']);
 
-        User::create($validated);
+        $user = User::create($validated);
+
+        // El sistema exige correo verificado: se envía el enlace apenas se
+        // crea la cuenta. Si el SMTP falla no se bloquea la creación; el
+        // usuario puede reenviarlo desde /email/verify.
+        try {
+            $user->sendEmailVerificationNotification();
+        } catch (\Throwable $e) {
+            \Log::warning('No se pudo enviar el correo de verificación', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         return redirect()->route('users.index')
                         ->with('success', '¡Usuario creado exitosamente!');
@@ -61,6 +73,16 @@ class UserController extends Controller
         }
         $validated = $request->validated();
 
+        // Degradar o desactivar al último administrador activo dejaría el
+        // sistema sin nadie capaz de gestionar usuarios.
+        $eraAdminActivo = $user->role === 'admin' && $user->estado === 'activo';
+        $seguiraAdminActivo = $validated['role'] === 'admin' && $validated['estado'] === 'activo';
+
+        if ($eraAdminActivo && ! $seguiraAdminActivo && $this->esUltimoAdminActivo($user)) {
+            return redirect()->route('users.index')
+                            ->with('error', 'No puedes degradar ni desactivar al último administrador activo');
+        }
+
         if (!empty($validated['password'])) {
             $validated['password'] = Hash::make($validated['password']);
         } else {
@@ -84,15 +106,27 @@ class UserController extends Controller
                             ->with('error', 'No puedes eliminar tu propio usuario');
         }
 
-        // No permitir eliminar al último admin
-        if ($user->role === 'admin' && User::where('role', 'admin')->count() <= 1) {
+        // No permitir eliminar al último administrador activo.
+        if ($user->role === 'admin' && $user->estado === 'activo' && $this->esUltimoAdminActivo($user)) {
             return redirect()->route('users.index')
-                            ->with('error', 'No puedes eliminar al último administrador');
+                            ->with('error', 'No puedes eliminar al último administrador activo');
         }
 
         $user->delete();
 
         return redirect()->route('users.index')
                         ->with('success', '¡Usuario eliminado exitosamente!');
+    }
+
+    /**
+     * Comprueba si, excluyendo al usuario indicado, no queda ningún
+     * administrador activo en el sistema.
+     */
+    private function esUltimoAdminActivo(User $user): bool
+    {
+        return User::where('role', 'admin')
+            ->where('estado', 'activo')
+            ->where('id', '!=', $user->id)
+            ->doesntExist();
     }
 }

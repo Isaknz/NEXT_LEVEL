@@ -211,6 +211,19 @@ class CuentaPorCobrarTest extends TestCase
         ]))->assertSessionHasErrors('monto_original');
     }
 
+    public function test_rechaza_descuento_que_deja_la_cuenta_en_cero_o_negativo(): void
+    {
+        $this->admin();
+
+        // original 100 - descuento 150 = -50: una deuda negativa marcaría la
+        // cuenta como pagada sin que nadie cobrara nada.
+        $this->post(route('cuentas-por-cobrar.store'), $this->payload([
+            'monto_original' => '100.00',
+            'descuento' => '150.00',
+            'recargo' => '0.00',
+        ]))->assertSessionHasErrors('descuento');
+    }
+
     // ------------------------------------------------------------------ ANULAR
 
     public function test_anular_marca_la_cuenta_como_anulada_con_motivo(): void
@@ -301,6 +314,27 @@ class CuentaPorCobrarTest extends TestCase
             ->assertRedirect(route('cuentas-por-cobrar.index'));
 
         $this->assertDatabaseMissing('cuentas_por_cobrar', ['id_cuenta' => $cuenta->id_cuenta]);
+    }
+
+    public function test_no_se_puede_anular_una_cuenta_parcial_con_pagos_aplicados(): void
+    {
+        $user = $this->admin();
+        $cuenta = CuentaPorCobrar::factory()->create([
+            'estado' => 'PARCIAL',
+            'monto_original' => 500.00,
+        ]);
+        $this->aplicarPago($cuenta, 100.00, $user);
+
+        $this->from(route('cuentas-por-cobrar.index'))
+            ->post(route('cuentas-por-cobrar.anular', $cuenta), [
+                'motivo_anulacion' => 'Intento de anulación indebida',
+            ])
+            ->assertSessionHas('error');
+
+        $this->assertDatabaseHas('cuentas_por_cobrar', [
+            'id_cuenta' => $cuenta->id_cuenta,
+            'estado' => 'PARCIAL',
+        ]);
     }
 
     // ------------------------------------------------------------------ ÍNDICE

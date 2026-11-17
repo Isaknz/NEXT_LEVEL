@@ -57,12 +57,19 @@ Route::middleware('guest')->group(function () {
 Route::middleware(['auth', 'clave.temporal'])->group(function () {
     Route::get('/confirm-password', [ConfirmablePasswordController::class, 'show'])->name('password.confirm');
     Route::post('/confirm-password', [ConfirmablePasswordController::class, 'store']);
-    Route::post('/verify-email/email', [EmailVerificationNotificationController::class, 'store'])->name('verification.send');
-    Route::get('/verify-email/{id}/{hash}', [VerifyEmailController::class, '__invoke'])->name('verification.verify');
+    Route::post('/verify-email/email', [EmailVerificationNotificationController::class, 'store'])
+        ->middleware('throttle:6,1')
+        ->name('verification.send');
+    Route::get('/verify-email/{id}/{hash}', [VerifyEmailController::class, '__invoke'])
+        ->middleware(['signed', 'throttle:6,1'])
+        ->name('verification.verify');
     Route::get('/email/verify', [EmailVerificationPromptController::class, '__invoke'])->name('verification.notice');
 });
 
-Route::middleware(['auth', 'clave.temporal'])->group(function () {
+// 'verified' exige correo confirmado antes de operar el sistema. Las rutas
+// de password.change y verificación quedan FUERA de este grupo para que un
+// usuario con clave temporal o sin verificar pueda completarlos.
+Route::middleware(['auth', 'clave.temporal', 'verified'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     Route::get('/password/change', [AuthController::class, 'showChangePassword'])->name('password.change');
@@ -77,6 +84,7 @@ Route::middleware(['auth', 'clave.temporal'])->group(function () {
         Route::get('/pagos/{pago}/comprobante', [PagoController::class, 'comprobante'])->name('pagos.comprobante');
         Route::resource('gastos', GastoController::class);
         Route::post('/gastos/{gasto}/anular', [GastoController::class, 'anular'])->name('gastos.anular');
+        Route::get('/gastos/{gasto}/comprobante', [GastoController::class, 'descargarComprobante'])->name('gastos.comprobante');
         Route::resource('cuentas-por-cobrar', CuentaPorCobrarController::class)
         ->parameters(['cuentas-por-cobrar' => 'cuenta'])
         ->except(['show']);

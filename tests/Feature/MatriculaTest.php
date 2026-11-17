@@ -40,6 +40,60 @@ class MatriculaTest extends TestCase
         $this->assertDatabaseHas('matriculas', ['codigo' => 'MAT-TEST-001']);
     }
 
+    public function test_los_pagos_iniciales_enviados_por_post_no_crean_pagos_huerfanos(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $nivel = \App\Models\Nivel::factory()->create();
+
+        $response = $this->post('/matriculas', [
+            'codigo' => 'MAT-PAGO-INICIAL',
+            'id_alumno' => \App\Models\Alumno::factory()->create()->id_alumno,
+            'id_periodo' => \App\Models\PeriodoAcademico::factory()->create()->id_periodo,
+            'id_nivel' => $nivel->id_nivel,
+            'modalidad' => 'ESCOLAR',
+            'id_grado' => \App\Models\Grado::factory()->create(['id_nivel' => $nivel->id_nivel])->id_grado,
+            'fecha_matricula' => now()->format('Y-m-d'),
+            'tipo_matricula' => 'NUEVO',
+            'estado' => 'ACTIVA',
+            'pagos_iniciales' => [
+                ['id_caja' => 999999, 'monto' => -50, 'metodo_pago' => 'EFECTIVO'],
+            ],
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('matriculas', ['codigo' => 'MAT-PAGO-INICIAL']);
+        $this->assertSame(0, \App\Models\Pago::count());
+    }
+
+    public function test_crea_al_alumno_y_la_matricula_en_una_sola_transaccion(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $nivel = \App\Models\Nivel::factory()->create();
+
+        $response = $this->post('/matriculas', [
+            'codigo' => 'MAT-ALUMNO-NUEVO',
+            'alumno_nombres' => 'Ana',
+            'alumno_apellidos' => 'Pérez',
+            'alumno_dni' => '87654321',
+            'id_periodo' => \App\Models\PeriodoAcademico::factory()->create()->id_periodo,
+            'id_nivel' => $nivel->id_nivel,
+            'modalidad' => 'ESCOLAR',
+            'id_grado' => \App\Models\Grado::factory()->create(['id_nivel' => $nivel->id_nivel])->id_grado,
+            'fecha_matricula' => now()->format('Y-m-d'),
+            'tipo_matricula' => 'NUEVO',
+            'estado' => 'ACTIVA',
+        ]);
+
+        $response->assertSessionHasNoErrors();
+
+        $alumno = \App\Models\Alumno::where('dni', '87654321')->firstOrFail();
+        $matricula = \App\Models\Matricula::where('codigo', 'MAT-ALUMNO-NUEVO')->firstOrFail();
+
+        $this->assertSame($alumno->id_alumno, $matricula->id_alumno);
+    }
+
     public function test_matricula_with_two_modalities(): void
     {
         $user = User::factory()->create();
@@ -167,6 +221,30 @@ class MatriculaTest extends TestCase
         ]);
     }
 
+    public function test_no_se_puede_crear_una_matricula_directamente_pagada(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $nivel = \App\Models\Nivel::factory()->create();
+
+        // PAGADA solo la asigna el sistema al saldar las cuentas por cobrar;
+        // aceptarla en el formulario falseaba el estado sin pagos reales.
+        $response = $this->post('/matriculas', [
+            'codigo' => 'MAT-PAGADA-001',
+            'id_alumno' => \App\Models\Alumno::factory()->create()->id_alumno,
+            'id_periodo' => \App\Models\PeriodoAcademico::factory()->create()->id_periodo,
+            'id_nivel' => $nivel->id_nivel,
+            'modalidad' => 'ESCOLAR',
+            'id_grado' => \App\Models\Grado::factory()->create(['id_nivel' => $nivel->id_nivel])->id_grado,
+            'fecha_matricula' => now()->format('Y-m-d'),
+            'tipo_matricula' => 'NUEVO',
+            'estado' => 'PAGADA',
+        ]);
+
+        $response->assertSessionHasErrors('estado');
+        $this->assertDatabaseMissing('matriculas', ['codigo' => 'MAT-PAGADA-001']);
+    }
+
     public function test_no_se_puede_duplicar_matricula_activa_mismo_alumno_periodo(): void
     {
         $this->actingAs(User::factory()->create());
@@ -209,6 +287,23 @@ class MatriculaTest extends TestCase
 
         $response->assertSessionHasNoErrors();
         $this->assertDatabaseHas('matriculas', ['codigo' => 'MAT-REINGRESO-001']);
+    }
+
+    public function test_no_se_puede_eliminar_matricula_con_cuentas_por_cobrar(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $matricula = Matricula::factory()->create();
+
+        \App\Models\CuentaPorCobrar::factory()->create([
+            'id_matricula' => $matricula->id_matricula,
+        ]);
+
+        $this->from(route('matriculas.index'))
+            ->delete('/matriculas/' . $matricula->id_matricula)
+            ->assertSessionHas('error');
+
+        $this->assertDatabaseHas('matriculas', ['id_matricula' => $matricula->id_matricula]);
     }
 
     public function test_no_se_puede_eliminar_matricula_con_pagos(): void

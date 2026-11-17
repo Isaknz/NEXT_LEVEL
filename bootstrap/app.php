@@ -11,6 +11,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        // No usamos proxy inverso, así que TrustProxies no aporta nada.
+        // Si algún día despliegas detrás de Nginx/Cloudflare, elimina esta
+        // línea y configura los proxies confiables con $middleware->trustProxies(...).
+        $middleware->remove(\Illuminate\Http\Middleware\TrustProxies::class);
+
         $middleware->alias([
             'check.role' => \App\Http\Middleware\CheckRole::class,
             'role.permission' => \App\Http\Middleware\RolePermissionMiddleware::class,

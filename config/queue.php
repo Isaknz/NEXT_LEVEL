@@ -75,10 +75,14 @@ return [
 
         'deferred' => [
             'driver' => 'deferred',
+            // El timeout del worker es 60s; retry_after debe ser mayor para
+            // evitar que un job se procese dos veces (chequeo de Enlightn).
+            'retry_after' => (int) env('DEFERRED_QUEUE_RETRY_AFTER', 90),
         ],
 
         'background' => [
             'driver' => 'background',
+            'retry_after' => (int) env('BACKGROUND_QUEUE_RETRY_AFTER', 90),
         ],
 
         'failover' => [
@@ -87,6 +91,7 @@ return [
                 'database',
                 'deferred',
             ],
+            'retry_after' => (int) env('FAILOVER_QUEUE_RETRY_AFTER', 90),
         ],
 
     ],

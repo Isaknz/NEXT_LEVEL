@@ -39,12 +39,23 @@ class PermisosTest extends TestCase
             ['gerente', 'users.edit', false],
             ['gerente', 'users.update', false],
             ['gerente', 'users.destroy', false],
+            ['gerente', 'auditoria.limpiar', false],
+            ['gerente', 'cajas.ajuste', true],
 
             // SECRETARIA: catálogos y cuentas, sin anular
             ['secretaria', 'alumnos.index', true],
             ['secretaria', 'cuentas-por-cobrar.index', true],
             ['secretaria', 'cuentas-por-cobrar.store', true],
-            ['secretaria', 'cajas.cerrar', true],
+            ['secretaria', 'cajas.index', true],
+            ['secretaria', 'cajas.show', true],
+            ['secretaria', 'cajas.cerrar', false],
+            ['secretaria', 'cajas.aperturar', false],
+            ['secretaria', 'cajas.ajuste', false],
+            ['secretaria', 'cajas.store', false],
+            ['secretaria', 'cajas.update', false],
+            ['secretaria', 'cajas.destroy', false],
+            ['secretaria', 'auditoria.limpiar', false],
+            ['secretaria', 'cuentas-por-cobrar.destroy', false],
             ['secretaria', 'cuentas-por-cobrar.anular', false],
             ['secretaria', 'pagos.anular', false],
             ['secretaria', 'gastos.anular', false],
@@ -175,8 +186,23 @@ class PermisosTest extends TestCase
         $html = $this->get('/cajas')->assertOk()->getContent();
 
         $this->assertStringContainsString(route('cajas.index'), $html, 'el cajero debe ver el enlace a cajas');
+        $this->assertStringNotContainsString(route('matriculas.index'), $html, 'el cajero no debe ver el enlace a matrículas');
         $this->assertStringNotContainsString(route('cuentas-por-cobrar.index'), $html, 'el cajero no debe ver el enlace a cuentas por cobrar');
         $this->assertStringNotContainsString(route('niveles.index'), $html, 'el cajero no debe ver el enlace a niveles');
+    }
+
+    public function test_el_menu_del_admin_no_duplica_el_enlace_de_cajas(): void
+    {
+        $this->actingAs(User::factory()->admin()->create());
+
+        $html = $this->get('/dashboard')->assertOk()->getContent();
+
+        $this->assertStringContainsString(route('matriculas.index'), $html, 'el admin debe ver matrículas');
+        $this->assertSame(
+            1,
+            substr_count($html, 'href="'.route('cajas.index').'"'),
+            'el enlace a cajas no debe aparecer duplicado en el menú'
+        );
     }
 
     public function test_el_menu_muestra_cuentas_a_la_secretaria(): void
