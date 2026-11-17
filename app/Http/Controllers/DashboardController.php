@@ -95,10 +95,8 @@ class DashboardController extends Controller
         $data = [
             'total_alumnos' => Alumno::count(),
             'alumnos_activos' => Alumno::where('estado', 'ACTIVO')->count(),
-            'alumnos_retirados' => Alumno::where('estado', 'INACTIVO')->count(),
             'total_apoderados' => Apoderado::count(),
             'matriculas_activas' => Matricula::where('estado', 'ACTIVA')->count(),
-            'matriculas_inactivas' => Matricula::where('estado', 'RETIRADA')->orWhere('estado', 'ANULADA')->orWhere('estado', 'FINALIZADA')->count(),
             'total_ingresos' => $totalIngresos,
             'total_egresos' => $totalEgresos,
             'pagos_hoy' => Pago::where('estado', 'CONFIRMADO')->whereDate('fecha_pago', today())->count(),

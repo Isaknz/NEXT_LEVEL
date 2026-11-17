@@ -25,7 +25,6 @@
                     <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">Período</th>
                     <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">Facultad</th>
                     <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">Turno</th>
-                    <th class="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider">Vacantes</th>
                     <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">Matrículas</th>
                     <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">Estado</th>
                     <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">Acciones</th>
@@ -65,9 +64,7 @@
                     </td>
                     <td class="px-6 py-4 text-xs text-gray-600">
                         {{ ['MANANA' => 'Mañana', 'TARDE' => 'Tarde', 'NOCHE' => 'Noche', 'COMPLETO' => 'Completo'][$ciclo->turno] ?? $ciclo->turno }}
-                    </td>
-                    <td class="px-6 py-4 text-right text-sm text-gray-600">{{ $ciclo->vacantes ?? '—' }}</td>
-                    <td class="px-6 py-4 text-sm text-gray-600">{{ $ciclo->matriculas_count }}</td>
+                    </td>                    <td class="px-6 py-4 text-sm text-gray-600">{{ $ciclo->matriculas_count }}</td>
                     <td class="px-6 py-4">
                         @php
                             $estilos = [

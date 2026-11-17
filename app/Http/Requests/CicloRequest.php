@@ -31,7 +31,6 @@ class CicloRequest extends FormRequest
             'fecha_inicio' => ['nullable', 'date'],
             'fecha_fin' => ['nullable', 'date', 'after_or_equal:fecha_inicio'],
             'monto_referencial' => ['nullable', 'numeric', 'min:0', 'max:99999999.99'],
-            'vacantes' => ['nullable', 'integer', 'min:0', 'max:65535'],
             'estado' => ['required', Rule::in(['PLANIFICADO', 'ABIERTO', 'CERRADO', 'CANCELADO'])],
         ];
     }
@@ -46,7 +45,6 @@ class CicloRequest extends FormRequest
             'fecha_inicio' => 'fecha de inicio',
             'fecha_fin' => 'fecha de fin',
             'monto_referencial' => 'monto referencial',
-            'vacantes' => 'vacantes',
             'estado' => 'estado',
         ];
     }

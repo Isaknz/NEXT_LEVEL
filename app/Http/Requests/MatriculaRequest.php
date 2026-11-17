@@ -86,6 +86,14 @@ class MatriculaRequest extends FormRequest
             if ($modalidad === 'ESCOLAR' && $esAcademia) {
                 $validator->errors()->add('id_nivel', 'El nivel ACADEMIA solo aplica a matrículas de academia.');
             }
+
+            // La modalidad del alumno debe coincidir con la de la matricula.
+            if ($this->filled('id_alumno') && $modalidad) {
+                $modalidadAlumno = \App\Models\Alumno::where('id_alumno', $this->input('id_alumno'))->value('modalidad');
+                if ($modalidadAlumno && $modalidadAlumno !== $modalidad) {
+                    $validator->errors()->add('modalidad', 'La modalidad no coincide con la del alumno seleccionado.');
+                }
+            }
         });
     }
 

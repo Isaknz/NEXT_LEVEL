@@ -125,9 +125,11 @@ class MatriculaTest extends TestCase
             'estado' => 'ACTIVA',
         ]);
 
+        $alumnoAcademia = \App\Models\Alumno::factory()->create(['modalidad' => 'ACADEMIA']);
+
         $this->post('/matriculas', [
             'codigo' => 'MAT-ACA-001',
-            'id_alumno' => $alumno->id_alumno,
+            'id_alumno' => $alumnoAcademia->id_alumno,
             'id_periodo' => $periodo->id_periodo,
             'id_nivel' => $nivelAcademia->id_nivel,
             'modalidad' => 'ACADEMIA',
@@ -140,7 +142,8 @@ class MatriculaTest extends TestCase
 
         $this->assertDatabaseHas('matriculas', ['codigo' => 'MAT-ESC-001']);
         $this->assertDatabaseHas('matriculas', ['codigo' => 'MAT-ACA-001']);
-        $this->assertCount(2, \App\Models\Matricula::where('id_alumno', $alumno->id_alumno)->get());
+        $this->assertCount(1, \App\Models\Matricula::where('id_alumno', $alumno->id_alumno)->get());
+        $this->assertCount(1, \App\Models\Matricula::where('id_alumno', $alumnoAcademia->id_alumno)->get());
     }
 
     public function test_rechaza_un_ciclo_de_otro_periodo_en_vez_de_romper_la_fk(): void
@@ -156,7 +159,7 @@ class MatriculaTest extends TestCase
 
         $this->post('/matriculas', [
             'codigo' => 'MAT-CICLO-CRUZADO',
-            'id_alumno' => \App\Models\Alumno::factory()->create()->id_alumno,
+            'id_alumno' => \App\Models\Alumno::factory()->create(['modalidad' => 'ACADEMIA'])->id_alumno,
             'id_periodo' => $periodo->id_periodo,
             'id_nivel' => $nivel->id_nivel,
             'modalidad' => 'ACADEMIA',
@@ -341,7 +344,7 @@ class MatriculaTest extends TestCase
 
         $this->post('/matriculas', [
             'codigo' => 'MAT-NIVEL-MAL',
-            'id_alumno' => \App\Models\Alumno::factory()->create()->id_alumno,
+            'id_alumno' => \App\Models\Alumno::factory()->create(['modalidad' => 'ACADEMIA'])->id_alumno,
             'id_periodo' => $periodo->id_periodo,
             'id_nivel' => $nivelEscolar->id_nivel,
             'modalidad' => 'ACADEMIA',
@@ -364,7 +367,7 @@ class MatriculaTest extends TestCase
 
         $this->post('/matriculas', [
             'codigo' => 'MAT-NIVEL-ACA-ESCOLAR',
-            'id_alumno' => \App\Models\Alumno::factory()->create()->id_alumno,
+            'id_alumno' => \App\Models\Alumno::factory()->create(['modalidad' => 'ESCOLAR'])->id_alumno,
             'id_periodo' => $periodo->id_periodo,
             'id_nivel' => $nivelAcademia->id_nivel,
             'modalidad' => 'ESCOLAR',

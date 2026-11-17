@@ -39,7 +39,6 @@ class AlumnoRequest extends FormRequest
             'email' => 'nullable|email|max:120',
             'direccion' => 'nullable|string|max:255',
             'id_grado' => 'nullable|exists:grados,id_grado',
-            'id_ciclo' => 'nullable|exists:ciclos_academia,id_ciclo',
             'id_apoderado' => 'nullable|exists:apoderados,id_apoderado',
             'parentesco' => 'nullable|string|max:20',
             'estado' => 'required|in:ACTIVO,INACTIVO',

@@ -26,7 +26,6 @@ class Alumno extends Model
         'email',
         'direccion',
         'id_grado',
-        'id_ciclo',
         'id_apoderado',
         'parentesco',
         'estado',
@@ -44,11 +43,6 @@ class Alumno extends Model
     public function grado()
     {
         return $this->belongsTo(Grado::class, 'id_grado', 'id_grado');
-    }
-
-    public function ciclo()
-    {
-        return $this->belongsTo(CicloAcademia::class, 'id_ciclo', 'id_ciclo');
     }
 
     // Relación con apoderados a través de la tabla pivot

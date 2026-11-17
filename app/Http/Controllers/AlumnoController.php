@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Http\Requests\AlumnoRequest;
 use App\Models\Alumno;
 use App\Models\Apoderado;
-use App\Models\CicloAcademia;
 use App\Models\Grado;
 use App\Models\Nivel;
 use App\Traits\RegistraMovimientos;
@@ -38,9 +37,8 @@ class AlumnoController extends Controller
         $niveles = Nivel::where('estado', 'ACTIVO')->get();
         $grados = Grado::with('nivel')->where('estado', 'ACTIVO')->orderBy('orden')->get();
         $apoderados = Apoderado::orderBy('apellidos')->get();
-        $ciclos = CicloAcademia::with('facultad', 'periodo')->whereIn('estado', ['PLANIFICADO', 'ABIERTO'])->orderBy('nombre')->get();
 
-        return view('alumnos.create', compact('niveles', 'grados', 'apoderados', 'ciclos'));
+        return view('alumnos.create', compact('niveles', 'grados', 'apoderados'));
     }
 
     public function store(AlumnoRequest $request)
@@ -76,8 +74,6 @@ class AlumnoController extends Controller
     {
         if (($validated['modalidad'] ?? 'ESCOLAR') === 'ACADEMIA') {
             $validated['id_grado'] = null;
-        } else {
-            $validated['id_ciclo'] = null;
         }
     }
 
@@ -96,9 +92,8 @@ class AlumnoController extends Controller
         $niveles = Nivel::where('estado', 'ACTIVO')->get();
         $grados = Grado::with('nivel')->where('estado', 'ACTIVO')->orderBy('orden')->get();
         $apoderados = Apoderado::orderBy('apellidos')->get();
-        $ciclos = CicloAcademia::with('facultad', 'periodo')->whereIn('estado', ['PLANIFICADO', 'ABIERTO'])->orderBy('nombre')->get();
 
-        return view('alumnos.edit', compact('alumno', 'niveles', 'grados', 'apoderados', 'ciclos'));
+        return view('alumnos.edit', compact('alumno', 'niveles', 'grados', 'apoderados'));
     }
 
     public function update(AlumnoRequest $request, Alumno $alumno)
