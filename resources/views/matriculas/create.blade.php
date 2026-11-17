@@ -244,17 +244,18 @@
         const nivelSelect = document.getElementById('id_nivel');
         const gradoSelect = document.querySelector('#campo-grado select');
         const gradosOriginales = Array.from(gradoSelect.options);
+        let sincronizando = false;
+
+        function nivelEsAcademia() {
+            const opt = nivelSelect.options[nivelSelect.selectedIndex];
+            return opt && opt.dataset.codigo === 'ACA';
+        }
 
         function toggleModalidad() {
-            const modalidad = modalidadSelect.value;
-
-            if (modalidad === 'ACADEMIA') {
-                campoGrado.classList.add('hidden');
-                campoCiclo.classList.remove('hidden');
-            } else {
-                campoGrado.classList.remove('hidden');
-                campoCiclo.classList.add('hidden');
-            }
+            const esAcademia = modalidadSelect.value === 'ACADEMIA';
+            campoGrado.classList.toggle('hidden', esAcademia);
+            campoCiclo.classList.toggle('hidden', !esAcademia);
+            gradoSelect.disabled = esAcademia;
         }
 
         // Filtra los grados mostrando solo los del nivel elegido.
@@ -273,19 +274,41 @@
             gradoSelect.value = sigueDisponible ? seleccionado : '';
         }
 
+        // Nivel y modalidad siempre coherentes: nivel ACA <-> ACADEMIA.
+        function sincronizarNivelModalidad(origen) {
+            if (sincronizando) return;
+            sincronizando = true;
+
+            if (origen === 'nivel') {
+                const objetivo = nivelEsAcademia() ? 'ACADEMIA' : 'ESCOLAR';
+                if (modalidadSelect.value !== objetivo) {
+                    modalidadSelect.value = objetivo;
+                }
+            } else {
+                if (modalidadSelect.value === 'ACADEMIA' && !nivelEsAcademia()) {
+                    const nivelAcademia = Array.from(nivelSelect.options).find(function(o) { return o.dataset.codigo === 'ACA'; });
+                    if (nivelAcademia) nivelSelect.value = nivelAcademia.value;
+                } else if (modalidadSelect.value === 'ESCOLAR' && nivelEsAcademia()) {
+                    nivelSelect.value = '';
+                }
+            }
+
+            toggleModalidad();
+            filtrarGrados();
+            sincronizando = false;
+        }
+
         function toggleAlumnoNuevo() {
             const esNuevo = !alumnoSelect.value;
             bloqueNuevo.classList.toggle('hidden', !esNuevo);
 
-            if (esNuevo) {
-                bloqueNuevo.querySelectorAll('input, select').forEach(function(campo) {
+            bloqueNuevo.querySelectorAll('input, select').forEach(function(campo) {
+                if (esNuevo) {
                     campo.removeAttribute('disabled');
-                });
-            } else {
-                bloqueNuevo.querySelectorAll('input, select').forEach(function(campo) {
+                } else {
                     campo.setAttribute('disabled', 'disabled');
-                });
-            }
+                }
+            });
         }
 
         alumnoSelect.addEventListener('change', function() {
@@ -293,27 +316,32 @@
             const modalidad = selectedOption.getAttribute('data-modalidad');
 
             if (modalidad) {
+                sincronizando = true;
                 modalidadSelect.value = modalidad;
-                toggleModalidad();
-
-                // La academia usa el nivel cuyo codigo es ACA; los demas
-                // niveles se eligen manualmente segun el grado.
-                if (modalidad === 'ACADEMIA') {
+                if (modalidad === 'ACADEMIA' && !nivelEsAcademia()) {
                     const nivelAcademia = Array.from(nivelSelect.options).find(function(o) { return o.dataset.codigo === 'ACA'; });
                     if (nivelAcademia) nivelSelect.value = nivelAcademia.value;
+                } else if (modalidad === 'ESCOLAR' && nivelEsAcademia()) {
+                    nivelSelect.value = '';
                 }
-                }
+                sincronizando = false;
             }
 
+            toggleModalidad();
+            filtrarGrados();
             toggleAlumnoNuevo();
         });
 
-        modalidadSelect.addEventListener('change', toggleModalidad);
-        nivelSelect.addEventListener('change', filtrarGrados);
+        modalidadSelect.addEventListener('change', function() {
+            sincronizarNivelModalidad('modalidad');
+        });
 
-        toggleModalidad();
-        filtrarGrados();
+        nivelSelect.addEventListener('change', function() {
+            sincronizarNivelModalidad('nivel');
+        });
+
         toggleAlumnoNuevo();
+        sincronizarNivelModalidad('nivel');
     });
 </script>
 @endsection
