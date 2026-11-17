@@ -58,7 +58,7 @@
                     @foreach($alumnos as $alumno)
                         <option value="{{ $alumno->id_alumno }}"
                                 data-codigo="{{ $alumno->codigo }}"
-                                data-modalidad="{{ str_starts_with($alumno->codigo ?? '', 'AC') ? 'ACADEMIA' : 'ESCOLAR' }}"
+                                data-modalidad="{{ ($alumno->modalidad ?? 'ESCOLAR') === 'ACADEMIA' ? 'ACADEMIA' : 'ESCOLAR' }}"
                                 {{ old('id_alumno') == $alumno->id_alumno ? 'selected' : '' }}>
                             {{ $alumno->apellidos }}, {{ $alumno->nombres }} - DNI: {{ $alumno->dni ?? 'N/A' }}
                         </option>
@@ -139,7 +139,7 @@
                 <select name="id_nivel" id="id_nivel" required class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
                     <option value="">Seleccionar nivel</option>
                     @foreach($niveles as $nivel)
-                        <option value="{{ $nivel->id_nivel }}" {{ old('id_nivel') == $nivel->id_nivel ? 'selected' : '' }}>
+                        <option value="{{ $nivel->id_nivel }}" data-codigo="{{ $nivel->codigo }}" {{ old('id_nivel') == $nivel->id_nivel ? 'selected' : '' }}>
                             {{ $nivel->nombre }}
                         </option>
                     @endforeach
@@ -295,6 +295,13 @@
             if (modalidad) {
                 modalidadSelect.value = modalidad;
                 toggleModalidad();
+
+                // La academia usa el nivel cuyo codigo es ACA; los demas
+                // niveles se eligen manualmente segun el grado.
+                if (modalidad === 'ACADEMIA') {
+                    const nivelAcademia = Array.from(nivelSelect.options).find(function(o) { return o.dataset.codigo === 'ACA'; });
+                    if (nivelAcademia) nivelSelect.value = nivelAcademia.value;
+                }
             }
 
             toggleAlumnoNuevo();

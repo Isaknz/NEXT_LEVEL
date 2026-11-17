@@ -29,6 +29,7 @@ class Alumno extends Model
         'id_apoderado',
         'parentesco',
         'estado',
+        'modalidad',
         'foto',
         'fecha_ingreso',
         'observaciones',
@@ -69,7 +70,7 @@ class Alumno extends Model
 
     public function getEsAcademiaAttribute()
     {
-        return str_starts_with($this->codigo ?? '', 'AC');
+        return $this->modalidad === 'ACADEMIA';
     }
 
     // Obtener el apoderado principal
@@ -83,8 +84,9 @@ class Alumno extends Model
     {
         return $query
             ->when($request->filled('nivel'), function ($q) use ($request) {
-                if ($request->nivel == 3) {
-                    $q->where('codigo', 'LIKE', 'AC%');
+                $nivel = Nivel::find($request->nivel);
+                if ($nivel?->codigo === 'ACA') {
+                    $q->where('modalidad', 'ACADEMIA');
                 } else {
                     $q->whereHas('grado', function ($g) use ($request) {
                         $g->where('id_nivel', $request->nivel);

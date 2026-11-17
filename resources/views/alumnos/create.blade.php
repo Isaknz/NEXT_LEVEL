@@ -67,6 +67,14 @@
             </div>
 
             <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Modalidad *</label>
+                <select name="modalidad" id="modalidad" required class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                    <option value="ESCOLAR" {{ old('modalidad', 'ESCOLAR') === 'ESCOLAR' ? 'selected' : '' }}>Escolar (Primaria / Secundaria)</option>
+                    <option value="ACADEMIA" {{ old('modalidad') === 'ACADEMIA' ? 'selected' : '' }}>Academia</option>
+                </select>
+            </div>
+
+            <div id="campo-grado">
                 <label class="block text-sm font-semibold text-gray-700 mb-2">Grado</label>
                 <select name="id_grado" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
                     <option value="">Seleccionar grado</option>
@@ -76,6 +84,7 @@
                         </option>
                     @endforeach
                 </select>
+                <p class="text-xs text-gray-500 mt-1 hidden" id="nota-grado">Los alumnos de academia no tienen grado escolar; su nivel se define en la matrícula (ciclo).</p>
             </div>
 
             <div>
@@ -140,4 +149,28 @@
         </div>
     </form>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const modalidad = document.getElementById('modalidad');
+    const campoGrado = document.getElementById('campo-grado');
+    const gradoSelect = campoGrado.querySelector('select');
+    const notaGrado = document.getElementById('nota-grado');
+
+    function toggle() {
+        const esAcademia = modalidad.value === 'ACADEMIA';
+        campoGrado.classList.toggle('hidden', esAcademia);
+        notaGrado.classList.toggle('hidden', !esAcademia);
+        if (esAcademia) {
+            gradoSelect.value = '';
+            gradoSelect.disabled = true;
+        } else {
+            gradoSelect.disabled = false;
+        }
+    }
+
+    modalidad.addEventListener('change', toggle);
+    toggle();
+});
+</script>
 @endsection

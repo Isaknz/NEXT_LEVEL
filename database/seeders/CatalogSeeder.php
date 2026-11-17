@@ -65,16 +65,17 @@ class CatalogSeeder extends Seeder
         }
 
         $conceptos = [
-            ['codigo' => 'MATRICULA', 'nombre' => 'Matrícula', 'tipo' => 'MATRICULA'],
-            ['codigo' => 'MENSUALIDAD', 'nombre' => 'Mensualidad', 'tipo' => 'MENSUALIDAD'],
-            ['codigo' => 'MATERIAL', 'nombre' => 'Materiales', 'tipo' => 'MATERIAL'],
-            ['codigo' => 'EXAMEN', 'nombre' => 'Exámenes', 'tipo' => 'EXAMEN'],
+            ['codigo' => 'MATRICULA', 'nombre' => 'Matrícula', 'tipo' => 'MATRICULA', 'modalidad_aplicable' => 'AMBOS'],
+            ['codigo' => 'MENSUALIDAD', 'nombre' => 'Mensualidad', 'tipo' => 'MENSUALIDAD', 'modalidad_aplicable' => 'ESCOLAR'],
+            ['codigo' => 'PENSION_CICLO', 'nombre' => 'Pensión por ciclo', 'tipo' => 'CICLO', 'modalidad_aplicable' => 'ACADEMIA'],
+            ['codigo' => 'MATERIAL', 'nombre' => 'Materiales', 'tipo' => 'MATERIAL', 'modalidad_aplicable' => 'AMBOS'],
+            ['codigo' => 'EXAMEN', 'nombre' => 'Exámenes', 'tipo' => 'EXAMEN', 'modalidad_aplicable' => 'AMBOS'],
         ];
 
         foreach ($conceptos as $concepto) {
             ConceptoCobro::firstOrCreate(
                 ['codigo' => $concepto['codigo']],
-                ['modalidad_aplicable' => 'AMBOS', 'monto_referencial' => 0, 'estado' => 'ACTIVO'] + $concepto
+                ['monto_referencial' => 0, 'estado' => 'ACTIVO'] + $concepto
             );
         }
 

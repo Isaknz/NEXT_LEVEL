@@ -70,6 +70,25 @@ class MatriculaRequest extends FormRequest
         ];
     }
 
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            // La modalidad y el nivel deben ser coherentes: las matrículas
+            // de academia usan el nivel ACADEMIA y las escolares nunca.
+            $nivel = \App\Models\Nivel::find($this->input('id_nivel'));
+            $esAcademia = $nivel?->codigo === 'ACA';
+            $modalidad = $this->input('modalidad');
+
+            if ($modalidad === 'ACADEMIA' && ! $esAcademia) {
+                $validator->errors()->add('id_nivel', 'Las matrículas de academia deben usar el nivel ACADEMIA.');
+            }
+
+            if ($modalidad === 'ESCOLAR' && $esAcademia) {
+                $validator->errors()->add('id_nivel', 'El nivel ACADEMIA solo aplica a matrículas de academia.');
+            }
+        });
+    }
+
     /**
      * Estados que el formulario puede enviar. PAGADA queda reservada al
      * flujo de pagos, salvo que la matrícula ya lo tenga (edición).

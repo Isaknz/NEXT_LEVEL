@@ -86,6 +86,7 @@ class MatriculaController extends Controller
             'celular' => $request->input('alumno_celular') ?: null,
             'email' => $request->input('alumno_email') ?: null,
             'id_grado' => $validated['id_grado'] ?? null,
+            'modalidad' => $validated['modalidad'],
             'estado' => 'ACTIVO',
         ];
 
@@ -107,6 +108,13 @@ class MatriculaController extends Controller
             DB::transaction(function () use (&$validated, &$matricula, &$alumno, $datosAlumno, $esAlumnoNuevo) {
                 if ($esAlumnoNuevo) {
                     $alumno = Alumno::create($datosAlumno);
+
+                    // Misma regla que en AlumnoController: los de academia
+                    // sin código escrito reciben AC-##### para identificarlos.
+                    if ($alumno->modalidad === 'ACADEMIA' && empty($alumno->codigo)) {
+                        $alumno->update(['codigo' => 'AC-'.str_pad((string) $alumno->id_alumno, 5, '0', STR_PAD_LEFT)]);
+                    }
+
                     $validated['id_alumno'] = $alumno->id_alumno;
                 } else {
                     // El lock serializa el check de duplicado: dos altas

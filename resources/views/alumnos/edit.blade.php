@@ -159,6 +159,17 @@
                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
                 </div>
 
+                <!-- Modalidad -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        <i class="fas fa-tag text-blue-500 mr-1"></i>Modalidad
+                    </label>
+                    <select name="modalidad" id="modalidad" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white transition">
+                        <option value="ESCOLAR" {{ old('modalidad', $alumno->modalidad ?? 'ESCOLAR') === 'ESCOLAR' ? 'selected' : '' }}>Escolar (Primaria / Secundaria)</option>
+                        <option value="ACADEMIA" {{ old('modalidad', $alumno->modalidad) === 'ACADEMIA' ? 'selected' : '' }}>Academia</option>
+                    </select>
+                </div>
+
                 <!-- Estado -->
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">
@@ -215,4 +226,26 @@
         </div>
     </form>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const modalidad = document.getElementById('modalidad');
+    const gradoSelect = document.querySelector('select[name="id_grado"]');
+    const campoGrado = gradoSelect ? gradoSelect.closest('div') : null;
+
+    function toggle() {
+        const esAcademia = modalidad.value === 'ACADEMIA';
+        if (campoGrado) campoGrado.classList.toggle('hidden', esAcademia);
+        if (esAcademia) {
+            gradoSelect.value = '';
+            gradoSelect.disabled = true;
+        } else {
+            gradoSelect.disabled = false;
+        }
+    }
+
+    modalidad.addEventListener('change', toggle);
+    toggle();
+});
+</script>
 @endsection

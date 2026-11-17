@@ -42,6 +42,7 @@ class AlumnoRequest extends FormRequest
             'id_apoderado' => 'nullable|exists:apoderados,id_apoderado',
             'parentesco' => 'nullable|string|max:20',
             'estado' => 'required|in:ACTIVO,INACTIVO',
+            'modalidad' => 'required|in:ESCOLAR,ACADEMIA',
         ];
     }
 }

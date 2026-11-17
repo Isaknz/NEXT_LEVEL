@@ -196,3 +196,21 @@ despliegue:
 
 La fuente de verdad es `app/Support/Permisos.php`; el menú lateral y el
 middleware consultan la misma clase, por lo que no pueden divergir.
+
+---
+
+## 4. Modalidad de alumno (ESCOLAR / ACADEMIA)
+
+- `alumnos.modalidad` (migración `2026_11_16_000002`): los alumnos con
+  `codigo LIKE 'AC%'` quedan como ACADEMIA; el resto ESCOLAR. Reemplaza la
+  heurística por prefijo que usaban filtros y formularios.
+- Matrícula: `ACADEMIA` exige nivel con `codigo='ACA'` + `id_ciclo`;
+  `ESCOLAR` exige `id_grado` y rechaza el nivel ACADEMIA
+  (`MatriculaRequest::withValidator`). El formulario preselecciona nivel y
+  ciclo según la modalidad del alumno elegido.
+- Registro de alumno: selector de modalidad; en ACADEMIA el grado se oculta
+  (se asigna en la matrícula vía ciclo).
+- Conceptos de cobro (catálogo): `MATRICULA`, `MATERIAL`, `EXAMEN` → AMBOS;
+  `MENSUALIDAD` → ESCOLAR; `PENSION_CICLO` (tipo CICLO) → ACADEMIA.
+  Regla de negocio: todos pagan matrícula; P/S mensualidad; academia por ciclo.
+- Eliminado `app/Models/AlumnoAcademia.php` (modelo huérfano sin tabla).

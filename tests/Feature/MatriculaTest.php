@@ -100,6 +100,7 @@ class MatriculaTest extends TestCase
         $this->actingAs($user);
 
         $nivel = \App\Models\Nivel::factory()->create();
+        $nivelAcademia = \App\Models\Nivel::factory()->create(['codigo' => 'ACA']);
         $periodo = \App\Models\PeriodoAcademico::factory()->create();
         $gradoEscolar = \App\Models\Grado::factory()->create(['id_nivel' => $nivel->id_nivel]);
         $gradoAcademia = \App\Models\Grado::factory()->create(['id_nivel' => $nivel->id_nivel]);
@@ -128,7 +129,7 @@ class MatriculaTest extends TestCase
             'codigo' => 'MAT-ACA-001',
             'id_alumno' => $alumno->id_alumno,
             'id_periodo' => $periodo->id_periodo,
-            'id_nivel' => $nivel->id_nivel,
+            'id_nivel' => $nivelAcademia->id_nivel,
             'modalidad' => 'ACADEMIA',
             'id_ciclo' => $ciclo->id_ciclo,
             'id_grado' => null,
@@ -146,7 +147,7 @@ class MatriculaTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
 
-        $nivel = \App\Models\Nivel::factory()->create();
+        $nivel = \App\Models\Nivel::factory()->create(['codigo' => 'ACA']);
         $periodo = \App\Models\PeriodoAcademico::factory()->create();
         $otroPeriodo = \App\Models\PeriodoAcademico::factory()->create();
         $cicloDeOtroPeriodo = \App\Models\CicloAcademia::factory()->create([
@@ -328,5 +329,51 @@ class MatriculaTest extends TestCase
 
         $response->assertSessionHas('error');
         $this->assertDatabaseHas('matriculas', ['id_matricula' => $matricula->id_matricula]);
+    }
+
+    public function test_matricula_academia_requiere_nivel_aca(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $nivelEscolar = \App\Models\Nivel::factory()->create(['codigo' => 'PRI']);
+        $periodo = \App\Models\PeriodoAcademico::factory()->create();
+        $ciclo = \App\Models\CicloAcademia::factory()->create(['id_periodo' => $periodo->id_periodo]);
+
+        $this->post('/matriculas', [
+            'codigo' => 'MAT-NIVEL-MAL',
+            'id_alumno' => \App\Models\Alumno::factory()->create()->id_alumno,
+            'id_periodo' => $periodo->id_periodo,
+            'id_nivel' => $nivelEscolar->id_nivel,
+            'modalidad' => 'ACADEMIA',
+            'id_ciclo' => $ciclo->id_ciclo,
+            'fecha_matricula' => now()->format('Y-m-d'),
+            'tipo_matricula' => 'NUEVO',
+            'estado' => 'ACTIVA',
+        ])->assertSessionHasErrors('id_nivel');
+
+        $this->assertDatabaseMissing('matriculas', ['codigo' => 'MAT-NIVEL-MAL']);
+    }
+
+    public function test_matricula_escolar_rechaza_nivel_aca(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $nivelAcademia = \App\Models\Nivel::factory()->create(['codigo' => 'ACA']);
+        $periodo = \App\Models\PeriodoAcademico::factory()->create();
+        $grado = \App\Models\Grado::factory()->create(['id_nivel' => $nivelAcademia->id_nivel]);
+
+        $this->post('/matriculas', [
+            'codigo' => 'MAT-NIVEL-ACA-ESCOLAR',
+            'id_alumno' => \App\Models\Alumno::factory()->create()->id_alumno,
+            'id_periodo' => $periodo->id_periodo,
+            'id_nivel' => $nivelAcademia->id_nivel,
+            'modalidad' => 'ESCOLAR',
+            'id_grado' => $grado->id_grado,
+            'fecha_matricula' => now()->format('Y-m-d'),
+            'tipo_matricula' => 'NUEVO',
+            'estado' => 'ACTIVA',
+        ])->assertSessionHasErrors('id_nivel');
+
+        $this->assertDatabaseMissing('matriculas', ['codigo' => 'MAT-NIVEL-ACA-ESCOLAR']);
     }
 }

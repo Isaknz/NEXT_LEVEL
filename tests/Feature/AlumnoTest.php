@@ -42,6 +42,7 @@ class AlumnoTest extends TestCase
             'email' => 'juan@test.com',
             'id_grado' => $grado->id_grado,
             'estado' => 'ACTIVO',
+            'modalidad' => 'ESCOLAR',
         ]);
 
         $response->assertRedirect();
@@ -73,6 +74,7 @@ class AlumnoTest extends TestCase
             'sexo' => 'M',
             'id_grado' => $grado->id_grado,
             'estado' => 'ACTIVO',
+            'modalidad' => 'ESCOLAR',
         ]);
 
         $response->assertRedirect();
@@ -131,6 +133,7 @@ class AlumnoTest extends TestCase
             'nombres' => 'Maria',
             'apellidos' => 'Lopez',
             'estado' => 'ACTIVO',
+            'modalidad' => 'ESCOLAR',
         ]);
 
         $response = $this->post('/alumnos', [
@@ -139,6 +142,7 @@ class AlumnoTest extends TestCase
             'id_apoderado' => $apoderado->id_apoderado,
             'parentesco' => 'MADRE',
             'estado' => 'ACTIVO',
+            'modalidad' => 'ESCOLAR',
         ]);
 
         $response->assertRedirect();
@@ -165,6 +169,7 @@ class AlumnoTest extends TestCase
             'nombres' => 'Jose',
             'apellidos' => 'Ramos',
             'estado' => 'ACTIVO',
+            'modalidad' => 'ESCOLAR',
         ]);
 
         $response = $this->put('/alumnos/'.$alumno->id_alumno, [
@@ -174,6 +179,7 @@ class AlumnoTest extends TestCase
             'id_apoderado' => $apoderado->id_apoderado,
             'parentesco' => 'PADRE',
             'estado' => 'ACTIVO',
+            'modalidad' => 'ESCOLAR',
         ]);
 
         $response->assertRedirect();
@@ -211,6 +217,7 @@ class AlumnoTest extends TestCase
             'nombres' => 'Nuevo',
             'apellidos' => 'Alumno',
             'estado' => 'ACTIVO',
+            'modalidad' => 'ESCOLAR',
         ]);
 
         $response->assertSessionHasErrors('codigo');

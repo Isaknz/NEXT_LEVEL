@@ -47,6 +47,8 @@ class AlumnoController extends Controller
 
         $alumno = Alumno::create($validated);
 
+        $this->generarCodigoSiFalta($alumno);
+
         $this->vincularApoderado($alumno, $validated);
 
         // Registrar movimiento
@@ -93,6 +95,8 @@ class AlumnoController extends Controller
         $validated = $request->validated();
 
         $alumno->update($validated);
+
+        $this->generarCodigoSiFalta($alumno);
 
         $this->vincularApoderado($alumno, $validated);
 
@@ -144,6 +148,20 @@ class AlumnoController extends Controller
 
         return redirect()->route('alumnos.index')
             ->with('success', '¡Alumno eliminado exitosamente!');
+    }
+
+    /**
+     * Los alumnos de academia llevan código AC-##### para identificarlos en
+     * listados e impresiones. Si el usuario no escribió uno, se genera con
+     * el id ya asignado (único por construcción).
+     */
+    private function generarCodigoSiFalta(Alumno $alumno): void
+    {
+        if ($alumno->modalidad === 'ACADEMIA' && empty($alumno->codigo)) {
+            $alumno->update([
+                'codigo' => 'AC-'.str_pad((string) $alumno->id_alumno, 5, '0', STR_PAD_LEFT),
+            ]);
+        }
     }
 
     /**
