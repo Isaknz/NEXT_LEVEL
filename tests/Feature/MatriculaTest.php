@@ -379,4 +379,113 @@ class MatriculaTest extends TestCase
 
         $this->assertDatabaseMissing('matriculas', ['codigo' => 'MAT-NIVEL-ACA-ESCOLAR']);
     }
+
+    public function test_matricula_genera_cuentas_por_cobrar_segun_modalidad(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $periodo = \App\Models\PeriodoAcademico::factory()->create([
+            'fecha_inicio' => '2026-03-01',
+            'fecha_fin' => '2026-05-31',
+        ]);
+        $nivel = \App\Models\Nivel::factory()->create();
+        $grado = \App\Models\Grado::factory()->create(['id_nivel' => $nivel->id_nivel]);
+
+        $matriculaConcepto = \App\Models\ConceptoCobro::create([
+            'codigo' => 'MATRICULA', 'nombre' => 'Matricula', 'tipo' => 'MATRICULA',
+            'modalidad_aplicable' => 'AMBOS', 'monto_referencial' => 500, 'estado' => 'ACTIVO',
+        ]);
+        $mensualidad = \App\Models\ConceptoCobro::create([
+            'codigo' => 'MENSUALIDAD', 'nombre' => 'Mensualidad', 'tipo' => 'MENSUALIDAD',
+            'modalidad_aplicable' => 'ESCOLAR', 'monto_referencial' => 350, 'estado' => 'ACTIVO',
+        ]);
+        $cicloConcepto = \App\Models\ConceptoCobro::create([
+            'codigo' => 'PENSION_CICLO', 'nombre' => 'Pension ciclo', 'tipo' => 'CICLO',
+            'modalidad_aplicable' => 'ACADEMIA', 'monto_referencial' => 1500, 'estado' => 'ACTIVO',
+        ]);
+
+        $alumno = \App\Models\Alumno::factory()->create(['modalidad' => 'ESCOLAR']);
+
+        $this->post('/matriculas', [
+            'codigo' => 'MAT-CXC-001',
+            'id_alumno' => $alumno->id_alumno,
+            'id_periodo' => $periodo->id_periodo,
+            'id_nivel' => $nivel->id_nivel,
+            'modalidad' => 'ESCOLAR',
+            'id_grado' => $grado->id_grado,
+            'fecha_matricula' => now()->format('Y-m-d'),
+            'tipo_matricula' => 'NUEVO',
+            'estado' => 'ACTIVA',
+        ])->assertRedirect();
+
+        $matricula = \App\Models\Matricula::where('codigo', 'MAT-CXC-001')->firstOrFail();
+
+        $this->assertSame(4, \App\Models\CuentaPorCobrar::where('id_matricula', $matricula->id_matricula)->count());
+        $this->assertDatabaseHas('cuentas_por_cobrar', [
+            'id_matricula' => $matricula->id_matricula,
+            'id_concepto' => $matriculaConcepto->id_concepto,
+            'referencia' => 'AUTO-MAT',
+            'monto_original' => 500,
+        ]);
+        $this->assertDatabaseHas('cuentas_por_cobrar', [
+            'id_matricula' => $matricula->id_matricula,
+            'id_concepto' => $mensualidad->id_concepto,
+            'referencia' => 'AUTO-MEN-2026-03',
+        ]);
+        $this->assertDatabaseHas('cuentas_por_cobrar', [
+            'id_matricula' => $matricula->id_matricula,
+            'id_concepto' => $mensualidad->id_concepto,
+            'referencia' => 'AUTO-MEN-2026-05',
+        ]);
+        $this->assertDatabaseMissing('cuentas_por_cobrar', [
+            'id_matricula' => $matricula->id_matricula,
+            'id_concepto' => $cicloConcepto->id_concepto,
+        ]);
+    }
+
+    public function test_matricula_academia_genera_pension_de_ciclo(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $periodo = \App\Models\PeriodoAcademico::factory()->create();
+        $nivelAcademia = \App\Models\Nivel::factory()->create(['codigo' => 'ACA']);
+        $facultad = \App\Models\Facultad::factory()->create();
+        $ciclo = \App\Models\CicloAcademia::factory()->create([
+            'id_periodo' => $periodo->id_periodo,
+            'id_facultad' => $facultad->id_facultad,
+            'monto_referencial' => 1800,
+        ]);
+
+        \App\Models\ConceptoCobro::create([
+            'codigo' => 'MATRICULA', 'nombre' => 'Matricula', 'tipo' => 'MATRICULA',
+            'modalidad_aplicable' => 'AMBOS', 'monto_referencial' => 500, 'estado' => 'ACTIVO',
+        ]);
+        \App\Models\ConceptoCobro::create([
+            'codigo' => 'PENSION_CICLO', 'nombre' => 'Pension ciclo', 'tipo' => 'CICLO',
+            'modalidad_aplicable' => 'ACADEMIA', 'monto_referencial' => 1500, 'estado' => 'ACTIVO',
+        ]);
+
+        $alumno = \App\Models\Alumno::factory()->create(['modalidad' => 'ACADEMIA']);
+
+        $this->post('/matriculas', [
+            'codigo' => 'MAT-CXC-ACA',
+            'id_alumno' => $alumno->id_alumno,
+            'id_periodo' => $periodo->id_periodo,
+            'id_nivel' => $nivelAcademia->id_nivel,
+            'modalidad' => 'ACADEMIA',
+            'id_ciclo' => $ciclo->id_ciclo,
+            'fecha_matricula' => now()->format('Y-m-d'),
+            'tipo_matricula' => 'NUEVO',
+            'estado' => 'ACTIVA',
+        ])->assertRedirect();
+
+        $matricula = \App\Models\Matricula::where('codigo', 'MAT-CXC-ACA')->firstOrFail();
+
+        $this->assertSame(2, \App\Models\CuentaPorCobrar::where('id_matricula', $matricula->id_matricula)->count());
+        $this->assertDatabaseHas('cuentas_por_cobrar', [
+            'id_matricula' => $matricula->id_matricula,
+            'referencia' => 'AUTO-CICLO',
+            'monto_original' => 1800,
+        ]);
+    }
 }

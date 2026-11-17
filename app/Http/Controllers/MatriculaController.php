@@ -135,6 +135,8 @@ class MatriculaController extends Controller
                 }
 
                 $matricula = Matricula::create($validated);
+
+                $this->generarCuentasIniciales($matricula);
             });
         } catch (ValidationException $e) {
             throw $e;
@@ -268,4 +270,80 @@ class MatriculaController extends Controller
         return redirect()->route('matriculas.index')
                         ->with('success', '¡Matrícula eliminada exitosamente!');
     }
+
+    /**
+     * Genera las cuentas por cobrar iniciales de la matricula:
+     * - MATRICULA para todas las modalidades.
+     * - MENSUALIDAD por cada mes del periodo (ESCOLAR).
+     * - PENSION_CICLO con el monto del ciclo o del concepto (ACADEMIA).
+     * Se ejecuta dentro de la transaccion del store: si falla, la
+     * matricula tampoco queda creada.
+     */
+    private function generarCuentasIniciales(Matricula $matricula): void
+    {
+        $conceptos = \App\Models\ConceptoCobro::whereIn('codigo', ['MATRICULA', 'MENSUALIDAD', 'PENSION_CICLO'])
+            ->where('estado', 'ACTIVO')
+            ->get()
+            ->keyBy('codigo');
+
+        $hoy = now()->toDateString();
+        $creadoPor = auth()->id();
+
+        $crear = function (string $codigoConcepto, float $monto, string $referencia, string $descripcion, $vencimiento) use ($conceptos, $matricula, $hoy, $creadoPor) {
+            $concepto = $conceptos->get($codigoConcepto);
+            if (! $concepto || $monto <= 0) {
+                return;
+            }
+
+            \App\Models\CuentaPorCobrar::create([
+                'id_matricula' => $matricula->id_matricula,
+                'id_concepto' => $concepto->id_concepto,
+                'referencia' => $referencia,
+                'descripcion' => $descripcion,
+                'fecha_emision' => $hoy,
+                'fecha_vencimiento' => $vencimiento,
+                'monto_original' => $monto,
+                'descuento' => 0,
+                'recargo' => 0,
+                'estado' => 'PENDIENTE',
+                'creado_por' => $creadoPor,
+            ]);
+        };
+
+        // Matricula: la pagan todos.
+        $mat = $conceptos->get('MATRICULA');
+        if ($mat) {
+            $crear('MATRICULA', (float) $mat->monto_referencial, 'AUTO-MAT',
+                'Matrícula '.$matricula->codigo, now()->addDays(15)->toDateString());
+        }
+
+        if ($matricula->modalidad === 'ACADEMIA') {
+            $ciclo = $matricula->ciclo;
+            $montoCiclo = $ciclo && (float) $ciclo->monto_referencial > 0
+                ? (float) $ciclo->monto_referencial
+                : (float) ($conceptos->get('PENSION_CICLO')->monto_referencial ?? 0);
+            $vencimiento = $ciclo?->fecha_fin?->toDateString() ?? now()->addDays(30)->toDateString();
+            $crear('PENSION_CICLO', $montoCiclo, 'AUTO-CICLO',
+                'Pensión del ciclo '.($ciclo->nombre ?? ''), $vencimiento);
+        } else {
+            // Una mensualidad por cada mes del periodo academico.
+            $periodo = $matricula->periodo;
+            if ($periodo) {
+                $inicio = \Carbon\Carbon::parse($periodo->fecha_inicio)->startOfMonth();
+                $fin = \Carbon\Carbon::parse($periodo->fecha_fin)->startOfMonth();
+                $mes = $inicio->copy();
+                $n = 0;
+                $concepto = $conceptos->get('MENSUALIDAD');
+                while ($mes->lte($fin) && $n < 12) {
+                    $crear('MENSUALIDAD', (float) ($concepto->monto_referencial ?? 0),
+                        'AUTO-MEN-'.$mes->format('Y-m'),
+                        'Mensualidad '.$mes->format('m/Y'),
+                        $mes->copy()->day(10)->toDateString());
+                    $mes->addMonth();
+                    $n++;
+                }
+            }
+        }
+    }
 }
+
