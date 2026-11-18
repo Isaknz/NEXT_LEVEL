@@ -30,6 +30,8 @@ class ApoderadoRequest extends FormRequest
             'email' => 'nullable|email|max:120',
             'direccion' => 'nullable|string|max:255',
             'estado' => 'required|in:ACTIVO,INACTIVO',
+            'alumnos' => 'nullable|array',
+            'alumnos.*' => 'exists:alumnos,id_alumno',
         ];
     }
 }

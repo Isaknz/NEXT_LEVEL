@@ -181,7 +181,13 @@ class AlumnoController extends Controller
      */
     private function vincularApoderado(Alumno $alumno, array $datos): void
     {
-        $idApoderado = $datos['id_apoderado'] ?? null;
+        // Si el formulario no envía el campo (p. ej. ediciones parciales),
+        // no tocar los vínculos existentes.
+        if (! array_key_exists('id_apoderado', $datos)) {
+            return;
+        }
+
+        $idApoderado = $datos['id_apoderado'];
 
         if (! $idApoderado) {
             $alumno->apoderados()->detach();
@@ -191,12 +197,25 @@ class AlumnoController extends Controller
 
         $parentesco = $datos['parentesco'] ?? 'TUTOR';
 
-        $alumno->apoderados()->sync([
+        // El formulario maneja al apoderado principal. No borrar otros
+        // vínculos secundarios creados desde la ficha del apoderado:
+        // solo degradarlos a no-principales.
+        $alumno->apoderados()->newPivotStatement()
+            ->where('id_alumno', $alumno->id_alumno)
+            ->update(['es_principal' => false]);
+
+        $alumno->apoderados()->syncWithoutDetaching([
             $idApoderado => [
                 'parentesco' => $parentesco,
                 'es_principal' => true,
                 'autorizado_recojo' => true,
             ],
+        ]);
+
+        // Refrescar el parentesco si el vínculo ya existía.
+        $alumno->apoderados()->updateExistingPivot($idApoderado, [
+            'parentesco' => $parentesco,
+            'es_principal' => true,
         ]);
     }
 }
