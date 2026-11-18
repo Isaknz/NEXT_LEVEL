@@ -171,11 +171,23 @@
                                 <i class="fas fa-users text-teal-600"></i>
                             </div>
                             <div>
-                                <p class="text-sm text-gray-500">Apoderado</p>
-                                <p class="font-semibold text-gray-800">{{ $alumno->apoderado->nombre_apod ?? 'No registrado' }}</p>
-                                @if($alumno->parentesco)
-                                    <span class="text-xs text-gray-500">Parentesco: {{ $alumno->parentesco }}</span>
-                                @endif
+                                <p class="text-sm text-gray-500">Apoderados</p>
+                                @forelse($alumno->apoderados as $apo)
+                                    <p class="font-semibold text-gray-800">
+                                        {{ $apo->nombre_completo ?? ($apo->nombres.' '.$apo->apellidos) }}
+                                        @if($apo->pivot?->parentesco)
+                                            <span class="text-xs text-gray-500">({{ $apo->pivot->parentesco }})</span>
+                                        @endif
+                                        @if($apo->pivot?->es_principal)
+                                            <span class="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">Principal</span>
+                                        @endif
+                                    </p>
+                                    @if($apo->celular)
+                                        <p class="text-xs text-gray-500">{{ $apo->celular }}</p>
+                                    @endif
+                                @empty
+                                    <p class="font-semibold text-gray-400">No registrado</p>
+                                @endforelse
                             </div>
                         </div>
                     </div>
