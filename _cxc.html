@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crear Cuenta por Cobrar - Next Level</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="preload" as="style" href="http://127.0.0.1:8000/build/assets/app-D9QkRIKY.css" /><link rel="modulepreload" as="script" href="http://127.0.0.1:8000/build/assets/app-Dgi0TtQg.js" /><link rel="stylesheet" href="http://127.0.0.1:8000/build/assets/app-D9QkRIKY.css" /><script type="module" src="http://127.0.0.1:8000/build/assets/app-Dgi0TtQg.js"></script>    </head>
+<body class="bg-gray-100" x-data="{ open: true }">
+    <!-- SIDEBAR -->
+    <aside
+           class="fixed left-0 top-0 h-full w-64 bg-blue-950 text-white z-40 transform lg:translate-x-0 transition-transform duration-200 ease-in-out flex flex-col"
+           :class="{ '-translate-x-full': !open, 'translate-x-0': open }"
+           id="sidebar">
+        <!-- Logo -->
+        <div class="flex items-center justify-between px-4 py-4 border-b border-blue-800 shrink-0">
+            <div class="flex items-center space-x-2">
+                <img
+    src="http://127.0.0.1:8000/img/logo_next.png"
+    alt="Logo de Next Level School"
+    class="h-9 w-9 text-white"
+>
+                <div>
+                    <h1 class="text-sm font-bold leading-tight">Next Level</h1>
+                    <p class="text-[10px] text-blue-300">School</p>
+                </div>
+            </div>
+            <button @click="open = !open" class="text-blue-300 hover:text-white lg:hidden">
+                <i class="fas fa-chevron-left text-sm"></i>
+            </button>
+        </div>
+
+        <!-- Navegaci�n -->
+        <nav class="px-2 py-3 space-y-1 flex-1 overflow-y-auto">
+            <!-- Dashboard -->
+            <a href="http://127.0.0.1:8000/dashboard" class="flex items-center px-3 py-2.5 text-sm rounded-lg hover:bg-blue-900 text-blue-200">
+                <i class="fas fa-home w-5"></i>
+                <span class="ms-3">Dashboard</span>
+            </a>
+
+            <!-- Alumnos -->
+                        <a href="http://127.0.0.1:8000/alumnos" class="flex items-center px-3 py-2.5 text-sm rounded-lg hover:bg-blue-900 text-blue-200">
+                <i class="fas fa-user-graduate w-5"></i>
+                <span class="ms-3">Alumnos</span>
+            </a>
+            
+            <!-- Apoderados -->
+                        <a href="http://127.0.0.1:8000/apoderados" class="flex items-center px-3 py-2.5 text-sm rounded-lg hover:bg-blue-900 text-blue-200">
+                <i class="fas fa-users w-5"></i>
+                <span class="ms-3">Apoderados</span>
+            </a>
+            
+            <!-- Matrículas -->
+                        <a href="http://127.0.0.1:8000/matriculas" class="flex items-center px-3 py-2.5 text-sm rounded-lg hover:bg-blue-900 text-blue-200">
+                <i class="fas fa-file-invoice w-5"></i>
+                <span class="ms-3">Matrículas</span>
+            </a>
+            
+            <!-- Cuentas por Cobrar -->
+                        <a href="http://127.0.0.1:8000/cuentas-por-cobrar" class="flex items-center px-3 py-2.5 text-sm rounded-lg hover:bg-blue-900 bg-blue-900 text-white">
+                <i class="fas fa-file-invoice-dollar w-5"></i>
+                <span class="ms-3">Cuentas por Cobrar</span>
+            </a>
+            
+            <!-- Pagos -->
+                        <a href="http://127.0.0.1:8000/pagos" class="flex items-center px-3 py-2.5 text-sm rounded-lg hover:bg-blue-900 text-blue-200">
+                <i class="fas fa-money-bill-wave w-5"></i>
+                <span class="ms-3">Pagos</span>
+            </a>
+            
+            <!-- Cajas -->
+                        <a href="http://127.0.0.1:8000/cajas" class="flex items-center px-3 py-2.5 text-sm rounded-lg hover:bg-blue-900 text-blue-200">
+                <i class="fas fa-landmark w-5"></i>
+                <span class="ms-3">Cajas</span>
+            </a>
+            
+            <!-- Gastos -->
+                        <a href="http://127.0.0.1:8000/gastos" class="flex items-center px-3 py-2.5 text-sm rounded-lg hover:bg-blue-900 text-blue-200">
+                <i class="fas fa-receipt w-5"></i>
+                <span class="ms-3">Gastos</span>
+            </a>
+            
+            <!-- Divisor -->
+            <hr class="border-blue-800 my-3">
+
+            <!-- Reportes -->
+                        <a href="http://127.0.0.1:8000/reportes" class="flex items-center px-3 py-2.5 text-sm rounded-lg hover:bg-blue-900 text-blue-200">
+                <i class="fas fa-chart-bar w-5"></i>
+                <span class="ms-3">Reportes</span>
+            </a>
+            
+            <!-- Configuración (colapsable) -->
+                        <div x-data="{ configOpen: false }" class="space-y-1">
+                <button @click="configOpen = !configOpen" class="w-full flex items-center px-3 py-2.5 text-sm rounded-lg hover:bg-blue-900 text-blue-200">
+                    <i class="fas fa-cog w-5"></i>
+                    <span class="ms-3 flex-1 text-left">Configuración
+                    <i x-show="!configOpen" class="fas fa-chevron-down text-xs"></i>
+                    <i x-show="configOpen" class="fas fa-chevron-up text-xs"></i>
+                </button>
+                <div x-show="configOpen" class="space-y-1 pl-4 mt-1">
+                                        <a href="http://127.0.0.1:8000/periodos" class="flex items-center px-3 py-2 text-sm rounded-lg hover:bg-blue-900 text-blue-300 ">
+                        <i class="fas fa-calendar w-4"></i><span class="ms-2">Periodos</span>
+                    </a>
+                                                            <a href="http://127.0.0.1:8000/niveles" class="flex items-center px-3 py-2 text-sm rounded-lg hover:bg-blue-900 text-blue-300 ">
+                        <i class="fas fa-layer-group w-4"></i><span class="ms-2">Niveles</span>
+                    </a>
+                                                            <a href="http://127.0.0.1:8000/grados" class="flex items-center px-3 py-2 text-sm rounded-lg hover:bg-blue-900 text-blue-300 ">
+                        <i class="fas fa-list-ol w-4"></i><span class="ms-2">Grados</span>
+                    </a>
+                                                            <a href="http://127.0.0.1:8000/facultades" class="flex items-center px-3 py-2 text-sm rounded-lg hover:bg-blue-900 text-blue-300 ">
+                        <i class="fas fa-university w-4"></i><span class="ms-2">Facultades</span>
+                    </a>
+                                                            <a href="http://127.0.0.1:8000/ciclos" class="flex items-center px-3 py-2 text-sm rounded-lg hover:bg-blue-900 text-blue-300 ">
+                        <i class="fas fa-sync w-4"></i><span class="ms-2">Ciclos</span>
+                    </a>
+                                                            <a href="http://127.0.0.1:8000/conceptos" class="flex items-center px-3 py-2 text-sm rounded-lg hover:bg-blue-900 text-blue-300 ">
+                        <i class="fas fa-tags w-4"></i><span class="ms-2">Conceptos</span>
+                    </a>
+                                                            <a href="http://127.0.0.1:8000/categorias" class="flex items-center px-3 py-2 text-sm rounded-lg hover:bg-blue-900 text-blue-300 ">
+                        <i class="fas fa-folder w-4"></i><span class="ms-2">Categorías</span>
+                    </a>
+                                                            <a href="http://127.0.0.1:8000/users" class="flex items-center px-3 py-2 text-sm rounded-lg hover:bg-blue-900 text-blue-300 ">
+                        <i class="fas fa-user-cog w-4"></i><span class="ms-2">Usuarios</span>
+                    </a>
+                                    </div>
+            </div>
+            
+            <!-- Auditoría -->
+                        <a href="http://127.0.0.1:8000/auditoria" class="flex items-center px-3 py-2.5 text-sm rounded-lg hover:bg-blue-900 text-blue-200">
+                <i class="fas fa-history w-5"></i>
+                <span class="ms-3">Auditoría</span>
+            </a>
+                    </nav>
+
+        <!-- Usuario -->
+        <div class="border-t border-blue-800 p-3 shrink-0">
+            <div class="flex items-center px-2">
+                <a href="http://127.0.0.1:8000/profile" class="w-8 h-8 rounded-full bg-blue-700 flex items-center justify-center text-xs font-bold hover:bg-blue-600" title="Mi perfil">
+                    A
+                </a>
+                <div class="ms-3 flex-1 min-w-0">
+                    <p class="text-sm font-semibold truncate">Administrador</p>
+                    <span class="text-[10px] bg-blue-700 px-1.5 py-0.5 rounded-full capitalize">
+                        admin
+                    </span>
+                </div>
+                <form method="POST" action="http://127.0.0.1:8000/logout" class="ml-1">
+                    <input type="hidden" name="_token" value="x1pEf8Gkc7X0KX3jlbpADNUKUobUcu4Nu6daiINk" autocomplete="off">                    <button type="submit" class="text-blue-300 hover:text-red-400 text-xs" title="Cerrar sesi�n">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </aside>
+
+    <!-- OVERLAY MÓVIL -->
+    <div x-show="open"
+         x-cloak
+         @click="open = false"
+         class="fixed inset-0 bg-black/50 z-30 lg:hidden"
+         id="sidebar-overlay"></div>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <div class="lg:ml-64" id="main-content">
+        <!-- HEADER -->
+        <header class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-30">
+            <div class="flex items-center justify-between px-4 py-3">
+                <div class="flex items-center space-x-3">
+                    <!-- Bot�n toggle sidebar -->
+                    <button @click="open = !open" class="text-gray-600 hover:text-blue-700 p-1">
+                        <i class="fas fa-bars text-lg"></i>
+                    </button>
+                    <!-- Breadcrumbs -->
+                    <nav aria-label="Breadcrumb" class="text-sm text-gray-500 hidden md:block">
+                        <ol class="flex items-center space-x-1">
+                            <li><a href="http://127.0.0.1:8000/dashboard" class="hover:text-blue-700">Inicio</a></li>
+                                <li class="breadcrumb-separator"><a href="http://127.0.0.1:8000/cuentas-por-cobrar" class="hover:text-blue-700">Cuentas por Cobrar</a></li>
+    <li class="breadcrumb-separator">Crear</li>
+                        </ol>
+                    </nav>
+                </div>
+
+                <div class="flex items-center space-x-3">
+                    <!-- Periodo Activo -->
+                    <div class="hidden md:flex items-center bg-blue-50 border border-blue-200 rounded-lg px-3 py-1.5">
+                        <i class="fas fa-calendar-alt text-blue-700 text-xs mr-2"></i>
+                        <span class="text-xs font-semibold text-blue-900">
+                            Periodo 2026 (2026)                        </span>
+                    </div>
+
+                    <!-- Alertas -->
+                    <button class="relative text-gray-600 hover:text-blue-700" title="Notificaciones">
+                        <i class="fas fa-bell text-lg"></i>
+                        <span class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center">3</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- CONTENIDO -->
+        <main class="p-4 md:p-6">
+            
+            
+            
+            <div class="max-w-3xl">
+    <div class="mb-6">
+        <h2 class="text-2xl font-bold text-gray-800">
+            <i class="fas fa-file-invoice mr-2 text-blue-600"></i>Crear Cuenta por Cobrar
+        </h2>
+        <p class="text-gray-500 text-sm mt-1">Genera una deuda asociada a una matrícula y un concepto de cobro.</p>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-md p-6">
+        
+        <form method="POST" action="http://127.0.0.1:8000/cuentas-por-cobrar" class="space-y-5">
+    <input type="hidden" name="_token" value="x1pEf8Gkc7X0KX3jlbpADNUKUobUcu4Nu6daiINk" autocomplete="off">    
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div>
+            <label for="id_matricula" class="block text-sm font-semibold text-gray-700 mb-1">
+                <i class="fas fa-user-graduate mr-1 text-blue-600"></i>Matrícula
+            </label>
+            <select name="id_matricula" id="id_matricula" required
+                    class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white ">
+                <option value="">Seleccione una matrícula...</option>
+                                    <option value="32" >
+                        MAT-ACA-001 - Maria Torres Vega
+                    </option>
+                                    <option value="31" >
+                        MAT-ESC-001 - Juan Carlos Perez Lopez
+                    </option>
+                            </select>
+                    </div>
+
+        <div>
+            <label for="id_concepto" class="block text-sm font-semibold text-gray-700 mb-1">
+                <i class="fas fa-file-invoice-dollar mr-1 text-blue-600"></i>Concepto
+            </label>
+            <select name="id_concepto" id="id_concepto" required
+                    class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white ">
+                <option value="">Seleccione un concepto...</option>
+                                    <option value="30" >
+                        EXAMEN - Exámenes
+                    </option>
+                                    <option value="29" >
+                        MATERIAL - Materiales
+                    </option>
+                                    <option value="27" >
+                        MATRICULA - Matrícula
+                    </option>
+                                    <option value="28" >
+                        MENSUALIDAD - Mensualidad
+                    </option>
+                                    <option value="31" >
+                        PENSION_CICLO - Pensión por ciclo
+                    </option>
+                            </select>
+                    </div>
+    </div>
+
+    <div>
+        <label for="referencia" class="block text-sm font-semibold text-gray-700 mb-1">
+            <i class="fas fa-hashtag mr-1 text-blue-600"></i>Referencia
+        </label>
+        <input type="text" name="referencia" id="referencia" maxlength="80" required
+               value=""
+               class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ">
+        <p class="text-xs text-gray-500 mt-1">Debe ser única para la combinación de matrícula y concepto.</p>
+            </div>
+
+    <div>
+        <label for="descripcion" class="block text-sm font-semibold text-gray-700 mb-1">
+            <i class="fas fa-align-left mr-1 text-blue-600"></i>Descripción
+        </label>
+        <input type="text" name="descripcion" id="descripcion" maxlength="255"
+               value=""
+               class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ">
+            </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div>
+            <label for="fecha_emision" class="block text-sm font-semibold text-gray-700 mb-1">
+                <i class="fas fa-calendar-day mr-1 text-blue-600"></i>Fecha de Emisión
+            </label>
+            <input type="date" name="fecha_emision" id="fecha_emision" required
+                   value="2026-11-18"
+                   class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ">
+                    </div>
+
+        <div>
+            <label for="fecha_vencimiento" class="block text-sm font-semibold text-gray-700 mb-1">
+                <i class="fas fa-calendar-xmark mr-1 text-blue-600"></i>Fecha de Vencimiento
+            </label>
+            <input type="date" name="fecha_vencimiento" id="fecha_vencimiento"
+                   value=""
+                   class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ">
+                    </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div>
+            <label for="monto_original" class="block text-sm font-semibold text-gray-700 mb-1">
+                <i class="fas fa-money-bill-wave mr-1 text-blue-600"></i>Monto Original
+            </label>
+            <input type="number" name="monto_original" id="monto_original" step="0.01" min="0.01" max="99999999.99" required
+                   value=""
+                   class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ">
+                    </div>
+
+        <div>
+            <label for="descuento" class="block text-sm font-semibold text-gray-700 mb-1">
+                <i class="fas fa-minus-circle mr-1 text-green-600"></i>Descuento
+            </label>
+            <input type="number" name="descuento" id="descuento" step="0.01" min="0" max="99999999.99"
+                   value="0.00"
+                   class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ">
+                    </div>
+
+        <div>
+            <label for="recargo" class="block text-sm font-semibold text-gray-700 mb-1">
+                <i class="fas fa-plus-circle mr-1 text-red-600"></i>Recargo
+            </label>
+            <input type="number" name="recargo" id="recargo" step="0.01" min="0" max="99999999.99"
+                   value="0.00"
+                   class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ">
+                    </div>
+    </div>
+
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
+        <i class="fas fa-calculator mr-1"></i>
+        Total a cobrar = monto original - descuento + recargo.
+        La cuenta se crea en estado <strong>PENDIENTE</strong> y se actualiza sola a PARCIAL o PAGADA según los pagos aplicados.
+    </div>
+
+    <div class="flex items-center gap-3 pt-2">
+        <button type="submit" class="btn-primary text-white px-5 py-2.5 rounded-lg text-sm shadow">
+            <i class="fas fa-save mr-1"></i> Crear Cuenta
+        </button>
+        <a href="http://127.0.0.1:8000/cuentas-por-cobrar" class="btn-secondary px-5 py-2.5 rounded-lg text-sm shadow">
+            <i class="fas fa-times mr-1"></i> Cancelar
+        </a>
+    </div>
+</form>
+    </div>
+</div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-white border-t border-gray-200 py-4 mt-6">
+            <div class="container mx-auto px-4 text-center text-sm text-gray-500">
+                <p> 2026 Next Level School  Sistema de Gestión Educativa. Todos los derechos reservados.</p>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        setTimeout(function() {
+            document.querySelectorAll('.bg-green-50, .bg-red-50, .bg-blue-50').forEach(function(el) {
+                el.style.transition = 'opacity 0.5s';
+                el.style.opacity = '0';
+                setTimeout(function() { el.remove(); }, 500);
+            });
+        }, 5000);
+    </script>
+
+    </body>
+</html>
+
+

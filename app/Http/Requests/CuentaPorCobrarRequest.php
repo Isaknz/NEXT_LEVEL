@@ -55,6 +55,21 @@ class CuentaPorCobrarRequest extends FormRequest
                     'El total de la cuenta (original - descuento + recargo) debe ser mayor que cero.'
                 );
             }
+
+            // El concepto debe aplicar a la modalidad de la matrícula:
+            // no se puede cobrar MENSUALIDAD (solo escolar) a un alumno
+            // de academia ni PENSION_CICLO a uno escolar.
+            $matricula = \App\Models\Matricula::find($this->input('id_matricula'));
+            $concepto = \App\Models\ConceptoCobro::find($this->input('id_concepto'));
+
+            if ($matricula && $concepto
+                && $concepto->modalidad_aplicable !== 'AMBOS'
+                && $concepto->modalidad_aplicable !== $matricula->modalidad) {
+                $validator->errors()->add(
+                    'id_concepto',
+                    "El concepto {$concepto->nombre} no aplica a matrículas de modalidad {$matricula->modalidad}."
+                );
+            }
         });
     }
 

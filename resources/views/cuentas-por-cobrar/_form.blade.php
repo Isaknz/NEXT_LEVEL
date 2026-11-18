@@ -17,7 +17,7 @@
                     class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white @error('id_matricula') border-red-500 @enderror">
                 <option value="">Seleccione una matrícula...</option>
                 @foreach($matriculas as $matricula)
-                    <option value="{{ $matricula->id_matricula }}" {{ (int) old('id_matricula', $editing ? $cuenta->id_matricula : 0) === (int) $matricula->id_matricula ? 'selected' : '' }}>
+                    <option value="{{ $matricula->id_matricula }}" data-modalidad="{{ $matricula->modalidad }}" {{ (int) old('id_matricula', $editing ? $cuenta->id_matricula : 0) === (int) $matricula->id_matricula ? 'selected' : '' }}>
                         {{ $matricula->codigo }} - {{ $matricula->alumno?->nombres }} {{ $matricula->alumno?->apellidos }}
                     </option>
                 @endforeach
@@ -35,7 +35,7 @@
                     class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white @error('id_concepto') border-red-500 @enderror">
                 <option value="">Seleccione un concepto...</option>
                 @foreach($conceptos as $concepto)
-                    <option value="{{ $concepto->id_concepto }}" {{ (int) old('id_concepto', $editing ? $cuenta->id_concepto : 0) === (int) $concepto->id_concepto ? 'selected' : '' }}>
+                    <option value="{{ $concepto->id_concepto }}" data-modalidad="{{ $concepto->modalidad_aplicable }}" {{ (int) old('id_concepto', $editing ? $cuenta->id_concepto : 0) === (int) $concepto->id_concepto ? 'selected' : '' }}>
                         {{ $concepto->codigo }} - {{ $concepto->nombre }}
                     </option>
                 @endforeach
@@ -150,3 +150,40 @@
         </a>
     </div>
 </form>
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const matriculaSelect = document.getElementById('id_matricula');
+    const conceptoSelect = document.getElementById('id_concepto');
+    if (!matriculaSelect || !conceptoSelect) return;
+
+    const opciones = Array.from(conceptoSelect.options);
+
+    function filtrarConceptos() {
+        const optMat = matriculaSelect.options[matriculaSelect.selectedIndex];
+        const modalidad = optMat ? optMat.dataset.modalidad : null;
+        const actual = conceptoSelect.value;
+
+        opciones.forEach(function (opt) {
+            if (!opt.value) { opt.hidden = false; opt.disabled = false; return; }
+            const aplica = !modalidad
+                || opt.dataset.modalidad === 'AMBOS'
+                || opt.dataset.modalidad === modalidad;
+            opt.hidden = !aplica;
+            opt.disabled = !aplica;
+        });
+
+        const sel = conceptoSelect.options[conceptoSelect.selectedIndex];
+        if (sel && sel.hidden) conceptoSelect.value = '';
+        if (!conceptoSelect.value) {
+            const conserva = opciones.find(o => o.value === actual && !o.hidden);
+            conceptoSelect.value = conserva ? actual : '';
+        }
+    }
+
+    matriculaSelect.addEventListener('change', filtrarConceptos);
+    filtrarConceptos();
+});
+</script>
+@endpush

@@ -18,7 +18,7 @@
         </div>
     @endif
 
-    <form action="{{ route('gastos.update', $gasto->id_gasto) }}" method="POST" class="bg-white rounded-xl shadow-md p-6">
+    <form action="{{ route('gastos.update', $gasto->id_gasto) }}" method="POST" enctype="multipart/form-data" class="bg-white rounded-xl shadow-md p-6">
         @csrf
         @method('PUT')
 
@@ -106,6 +106,21 @@
                 <label class="block text-sm font-semibold text-gray-700 mb-2">Descripción</label>
                 <textarea name="descripcion" rows="3"
                           class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500">{{ old('descripcion', $gasto->descripcion) }}</textarea>
+            </div>
+
+            <div class="md:col-span-2">
+                <label class="block text-sm font-semibold text-gray-700 mb-2">
+                    <i class="fas fa-paperclip text-red-500 mr-1"></i>Comprobante (opcional)
+                </label>
+                @if($gasto->archivo_url)
+                    <p class="text-sm text-gray-600 mb-2">
+                        <i class="fas fa-file-alt mr-1"></i>
+                        <a href="{{ route('gastos.comprobante', $gasto->id_gasto) }}" target="_blank" class="text-red-600 hover:underline">Ver comprobante actual</a>
+                    </p>
+                @endif
+                <input type="file" name="archivo" accept=".pdf,.jpg,.jpeg,.png"
+                       class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 bg-white text-sm">
+                <p class="text-xs text-gray-500 mt-1">PDF, JPG o PNG. Máximo 5 MB. Dejar vacío para conservar el actual.</p>
             </div>
         </div>
 
