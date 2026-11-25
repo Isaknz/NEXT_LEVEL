@@ -3,7 +3,7 @@
 @section('title', 'Registrar Pago - Next Level')
 
 @section('content')
-<div class="max-w-5xl mx-auto" x-data="{ showSummary: false, selectedConcepts: [], metodoPagoSeleccionado: '' }">
+<div class="max-w-5xl mx-auto">
     <h2 class="text-2xl font-bold text-gray-800 mb-6">
         <i class="fas fa-money-bill-wave mr-2 text-green-600"></i>Registrar Nuevo Pago
     </h2>
@@ -56,7 +56,6 @@
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">Método de Pago *</label>
                 <select name="metodo_pago" id="metodo_pago" required
-                        x-model="metodoPagoSeleccionado"
                         class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-white">
                     <option value="">Seleccionar método</option>
                     <option value="EFECTIVO" {{ old('metodo_pago') === 'EFECTIVO' ? 'selected' : '' }}>Efectivo</option>
@@ -154,7 +153,6 @@
                 Cancelar
             </a>
             <button type="button" id="btn-ver-resumen"
-                    @click="showSummary = true"
                     class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-2.5 rounded-lg text-sm font-semibold shadow">
                 <i class="fas fa-eye mr-1"></i> Ver Resumen
             </button>
@@ -167,11 +165,9 @@
     </form>
 
     <!-- Modal de Resumen -->
-    <div x-show="showSummary"
-         x-transition.opacity
-         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50"
-         style="display: none;">
-        <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6" @click.away="showSummary = false">
+    <div id="modal-resumen"
+         class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black bg-opacity-50">
+        <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6" id="modal-resumen-content">
             <h3 class="text-xl font-bold text-gray-800 mb-4">
                 <i class="fas fa-file-invoice mr-2 text-green-600"></i>Resumen del Pago
             </h3>
@@ -179,7 +175,7 @@
             <!-- Conceptos seleccionados -->
             <div class="mb-4">
                 <h4 class="text-sm font-semibold text-gray-700 mb-2">Conceptos Seleccionados</h4>
-                <div id="resumen-conceptos" x-text="selectedConcepts.length === 0 ? 'No hay conceptos seleccionados' : ''" class="text-sm text-gray-500 mb-2"></div>
+                <div id="resumen-conceptos" class="text-sm text-gray-500 mb-2"></div>
                 <ul class="space-y-2 max-h-48 overflow-y-auto" id="resumen-lista">
                 </ul>
             </div>
@@ -222,13 +218,11 @@
 
             <!-- Botones del modal -->
             <div class="flex justify-end gap-3">
-                <button type="button"
-                        @click="showSummary = false"
+                <button type="button" id="btn-cerrar-resumen"
                         class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2.5 rounded-lg text-sm shadow">
                     Cerrar
                 </button>
-                <button type="button"
-                        @click="confirmarResumen()"
+                <button type="button" id="btn-confirmar-resumen"
                         class="bg-green-600 hover:bg-green-700 text-white px-6 py-2.5 rounded-lg text-sm font-semibold shadow">
                     <i class="fas fa-check mr-1"></i> Confirmar y Registrar
                 </button>
@@ -245,7 +239,6 @@
         const sinCuentas = document.getElementById('sin-cuentas');
         const totalMonto = document.getElementById('total-monto');
         const montoTotalInput = document.getElementById('monto_total');
-        const btnVerResumen = document.getElementById('btn-ver-resumen');
         const btnRegistrar = document.getElementById('btn-registrar');
         const metodoPagoSelect = document.getElementById('metodo_pago');
         const metodoPagoConfirmado = document.getElementById('metodo_pago_confirmado');
@@ -253,9 +246,14 @@
         const resumenTotalConceptos = document.getElementById('resumen-total-conceptos');
         const resumenGrandTotal = document.getElementById('resumen-grand-total');
         const subtotalesConcepto = document.getElementById('subtotales-concepto');
+        const modalResumen = document.getElementById('modal-resumen');
+        const modalResumenContent = document.getElementById('modal-resumen-content');
+        const resumenConceptosMsg = document.getElementById('resumen-conceptos');
+        const btnVerResumen = document.getElementById('btn-ver-resumen');
+        const btnCerrarResumen = document.getElementById('btn-cerrar-resumen');
+        const btnConfirmarResumen = document.getElementById('btn-confirmar-resumen');
 
         let selectedConcepts = [];
-        let showSummary = false;
 
         function renderCuentas() {
             const selectedOption = matriculaSelect.options[matriculaSelect.selectedIndex];
@@ -412,6 +410,9 @@
                 subtotales[c.concepto] += c.monto;
             });
 
+            resumenConceptosMsg.textContent = selectedConcepts.length === 0
+                ? 'No hay conceptos seleccionados'
+                : `${selectedConcepts.length} concepto(s) seleccionado(s)`;
             if (selectedConcepts.length === 0) {
                 resumenLista.innerHTML = '<li class="text-sm text-gray-500">No hay conceptos seleccionados</li>';
             } else {
@@ -447,6 +448,17 @@
             }
         }
 
+        function abrirResumen() {
+            actualizarResumen();
+            modalResumen.classList.remove('hidden');
+            modalResumen.classList.add('flex');
+        }
+
+        function cerrarResumen() {
+            modalResumen.classList.add('hidden');
+            modalResumen.classList.remove('flex');
+        }
+
         function confirmarResumen() {
             if (selectedConcepts.length === 0) {
                 alert('Por favor, seleccione al menos un concepto.');
@@ -458,22 +470,20 @@
             }
             // Actualizar el método de pago oculto con el confirmado
             metodoPagoSelect.value = metodoPagoConfirmado.value;
-            showSummary = false;
+            cerrarResumen();
             // Habilitar el botón de registrar
             btnRegistrar.disabled = false;
             btnRegistrar.classList.remove('opacity-50', 'cursor-not-allowed');
             btnRegistrar.classList.add('opacity-100', 'cursor-pointer');
         }
 
-        // Exponer funciones a Alpine
-        window.selectedConcepts = selectedConcepts;
-        window.showSummary = showSummary;
-        window.confirmarResumen = confirmarResumen;
-
-        // Observar cambios en selectedConcepts para actualizar el resumen
-        const observer = new MutationObserver(function() {
-            actualizarResumen();
+        btnVerResumen.addEventListener('click', abrirResumen);
+        btnCerrarResumen.addEventListener('click', cerrarResumen);
+        btnConfirmarResumen.addEventListener('click', confirmarResumen);
+        modalResumenContent.addEventListener('click', function(e) {
+            e.stopPropagation();
         });
+        modalResumen.addEventListener('click', cerrarResumen);
 
         matriculaSelect.addEventListener('change', renderCuentas);
 
